@@ -7,6 +7,20 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
 
     <title>Saeed Auto</title>
+    
+    <!-- Polyfill for Object.hasOwn - Load before any modules -->
+    <script>
+      (function() {
+        if (!Object.hasOwn) {
+          Object.hasOwn = function(obj, prop) {
+            if (obj == null) {
+              throw new TypeError('Cannot convert undefined or null to object');
+            }
+            return Object.prototype.hasOwnProperty.call(Object(obj), prop);
+          };
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -18,6 +18,10 @@ body {
  padding: 0px;
  margin: 0px;
 }
+.MuiGrid-root.MuiGrid-direction-xs-row.css-1n5khr6 {
+    width: 95% !important;
+    margin: auto;
+}
 .menu-text{
 color: white;
 text-decoration: none;
