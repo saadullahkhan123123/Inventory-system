@@ -60,8 +60,14 @@ export default function Inventory() {
       setCategories(response.data?.categories || []);
     } catch (err) {
       console.error('Error fetching items:', err);
-      setError('Failed to load inventory items.');
-      showNotification('error', 'Failed to load inventory items.');
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to load inventory items';
+      const errorDetails = err.code === 'ECONNABORTED' 
+        ? 'Request timeout - backend may be slow or unreachable'
+        : err.message === 'Network Error'
+        ? 'Network error - check if backend is running'
+        : errorMsg;
+      setError(`Failed to load inventory items: ${errorDetails}`);
+      showNotification('error', `Failed to load inventory items: ${errorDetails}`);
     } finally {
       setLoading(false);
     }

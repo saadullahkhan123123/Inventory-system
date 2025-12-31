@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://inventory-system-back-end.onrender.com/api';
+// Backend API Base URL - Vercel serverless function
+const API_BASE_URL = 'https://inventory-system-backend-ten.vercel.app/api';
 
 export const axiosApi = axios.create({
   baseURL: API_BASE_URL,
@@ -103,6 +104,20 @@ axiosApi.history = {
   getSlips: (params = {}) => axiosApi.get('/history/slips', { params }),
   getIncome: (params = {}) => axiosApi.get('/history/income', { params }),
   getCombined: (params = {}) => axiosApi.get('/history/combined', { params }),
+};
+
+// Customer History API
+axiosApi.customerHistory = {
+  test: () => axiosApi.get('/customer-history/test'),
+  getByCustomerName: (customerName, params = {}) => {
+    const encodedName = encodeURIComponent(customerName);
+    console.log('📞 Calling customer history API:', `/customer-history/${encodedName}`);
+    return axiosApi.get(`/customer-history/${encodedName}`, { params });
+  },
+  getSuggestions: (query) => {
+    console.log('📞 Calling suggestions API:', '/customer-history/search/suggestions');
+    return axiosApi.get('/customer-history/search/suggestions', { params: { query } });
+  },
 };
 
 // Health check function

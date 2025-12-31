@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://inventory-system-back-end.onrender.com/",
+        target: "https://inventory-system-backend-ten.vercel.app/",
         changeOrigin: true,
       },
     },

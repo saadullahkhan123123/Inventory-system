@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
+import {
   Container, 
   Paper, 
   Typography, 
@@ -16,7 +16,8 @@ import {
   Alert,
   CircularProgress,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Chip
 } from '@mui/material';
 import { ArrowBack, Download, Print } from '@mui/icons-material';
 import { pdf, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     borderTop: '1pt solid #000',
     paddingTop: 10
-  }
+  } 
 });
 
 // PDF Document Component
@@ -302,14 +303,37 @@ function SlipPage() {
               </tr>
             </thead>
             <tbody>
-              ${slip.products.map(product => `
+              ${slip.products.map(product => {
+                let productDisplay = product.productName;
+                if (product.productType === 'Plate') {
+                  const plateDetails = [];
+                  if (product.bikeName) plateDetails.push(`Bike: ${product.bikeName}`);
+                  if (product.plateCompany) plateDetails.push(`Company: ${product.plateCompany}`);
+                  if (product.plateType) plateDetails.push(`Type: ${product.plateType}`);
+                  if (plateDetails.length > 0) {
+                    productDisplay += ` (${plateDetails.join(', ')})`;
+                  }
+                } else if (product.productType === 'Cover' && product.coverType) {
+                  productDisplay += ` (${product.coverType})`;
+                } else if (product.productType === 'Form') {
+                  const formDetails = [];
+                  if (product.formCompany) formDetails.push(product.formCompany);
+                  if (product.formType) formDetails.push(product.formType);
+                  if (product.formVariant) formDetails.push(product.formVariant);
+                  if (product.bikeName) formDetails.push(`Bike: ${product.bikeName}`);
+                  if (formDetails.length > 0) {
+                    productDisplay += ` (${formDetails.join(', ')})`;
+                  }
+                }
+                return `
                 <tr>
-                  <td>${product.productName}</td>
+                  <td>${productDisplay}</td>
                   <td>${product.quantity}</td>
                   <td>Rs ${product.unitPrice?.toLocaleString()}</td>
                   <td>Rs ${product.totalPrice?.toLocaleString()}</td>
                 </tr>
-              `).join('')}
+              `;
+              }).join('')}
             </tbody>
           </table>
           
@@ -526,7 +550,82 @@ function SlipPage() {
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
                   }}>
-                    {product.productName}
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {product.productName}
+                      </Typography>
+                      {product.productType === 'Plate' && (
+                        <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                          {product.bikeName && (
+                            <Chip 
+                              label={`Bike: ${product.bikeName}`} 
+                              size="small" 
+                              variant="outlined" 
+                              color="secondary"
+                              sx={{ fontSize: '0.65rem', height: '18px' }} 
+                            />
+                          )}
+                          {product.plateCompany && (
+                            <Chip 
+                              label={`Company: ${product.plateCompany}`} 
+                              size="small" 
+                              variant="outlined" 
+                              color="secondary"
+                              sx={{ fontSize: '0.65rem', height: '18px' }} 
+                            />
+                          )}
+                          {product.plateType && (
+                            <Chip 
+                              label={`Type: ${product.plateType}`} 
+                              size="small" 
+                              variant="outlined" 
+                              color="secondary"
+                              sx={{ fontSize: '0.65rem', height: '18px' }} 
+                            />
+                          )}
+                        </Box>
+                      )}
+                      {product.productType === 'Cover' && product.coverType && (
+                        <Chip 
+                          label={product.coverType} 
+                          size="small" 
+                          variant="outlined" 
+                          color="primary"
+                          sx={{ fontSize: '0.65rem', height: '18px', mt: 0.5 }} 
+                        />
+                      )}
+                      {product.productType === 'Form' && (
+                        <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                          {product.formCompany && (
+                            <Chip 
+                              label={`${product.formCompany} ${product.formType || ''}`} 
+                              size="small" 
+                              variant="outlined" 
+                              color="info"
+                              sx={{ fontSize: '0.65rem', height: '18px' }} 
+                            />
+                          )}
+                          {product.formVariant && (
+                            <Chip 
+                              label={product.formVariant} 
+                              size="small" 
+                              variant="outlined" 
+                              color="info"
+                              sx={{ fontSize: '0.65rem', height: '18px' }} 
+                            />
+                          )}
+                          {product.bikeName && (
+                            <Chip 
+                              label={`Bike: ${product.bikeName}`} 
+                              size="small" 
+                              variant="outlined" 
+                              color="info"
+                              sx={{ fontSize: '0.65rem', height: '18px' }} 
+                            />
+                          )}
+                        </Box>
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell sx={{ 
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },

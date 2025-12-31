@@ -12,6 +12,8 @@ import Income from './pages/icome';
 import SearchSlip from './pages/searchSlip';
 import ViewSlips from './pages/viewslips';
 import StartupAnimation from './components/StartupAnimation';
+import CustomerHistory from './pages/CustomerHistory';
+import BackendStatus from './components/BackendStatus';
 
 // Page Transition Wrapper
 function PageTransition({ children }) {
@@ -97,6 +99,11 @@ function AppRoutes() {
           <SearchSlip />
         </PageTransition>
       } />
+      <Route path="/customer-history" element={
+        <PageTransition>
+          <CustomerHistory />
+        </PageTransition>
+      } />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
@@ -117,6 +124,7 @@ function App() {
     <>
       <Router>
         <StartupAnimation isLoading={isLoading}>
+          <BackendStatus />
           <Header />
           <AppRoutes />
         </StartupAnimation>

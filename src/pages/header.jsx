@@ -102,6 +102,7 @@ function Header() {
     { label: 'Create Slip', path: '/slips' },
     { label: 'View Slips', path: '/slippage' },
     { label: 'Search Slips', path: '/search-slips' },
+    { label: 'Customer History', path: '/customer-history' },
   ];
 
   // Mobile drawer

@@ -84,7 +84,13 @@ const SearchSlip = () => {
       // searchResults will be updated by useEffect
     } catch (error) {
       console.error('Error fetching slips:', error);
-      showNotification('error', 'Failed to load slips.');
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to load slips';
+      const errorDetails = error.code === 'ECONNABORTED' 
+        ? 'Request timeout - backend may be slow or unreachable'
+        : error.message === 'Network Error'
+        ? 'Network error - check if backend is running'
+        : errorMsg;
+      showNotification('error', `Failed to load slips: ${errorDetails}`);
       setAllSlips([]);
       setSearchResults([]);
     } finally {

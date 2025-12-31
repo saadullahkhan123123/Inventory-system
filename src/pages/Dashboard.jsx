@@ -45,7 +45,13 @@ function Dashboard() {
       setOrdersByStatus(statusRes.data.ordersByStatus || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      showNotification('error', 'Failed to load dashboard data');
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to load dashboard data';
+      const errorDetails = error.code === 'ECONNABORTED' 
+        ? 'Request timeout - backend may be slow or unreachable'
+        : error.message === 'Network Error'
+        ? 'Network error - check if backend is running'
+        : errorMsg;
+      showNotification('error', `Failed to load dashboard data: ${errorDetails}`);
     } finally {
       setLoading(false);
     }
