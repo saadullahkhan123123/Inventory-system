@@ -171,7 +171,13 @@ function SlipPage() {
       } catch (error) {
         console.error('Error fetching slip:', error);
         console.error('Error details:', error.response?.data);
-        setError(`Failed to load slip data: ${error.response?.data?.error || error.message}`);
+        const errorMsg = error.response?.data?.error || error.message || 'Failed to load slip data';
+        const errorDetails = error.code === 'ECONNABORTED' 
+          ? 'Request timeout - backend may be slow or unreachable'
+          : error.message === 'Network Error'
+          ? 'Network error - check if backend is running'
+          : errorMsg;
+        setError(`Failed to load slip data: ${errorDetails}`);
       } finally {
         setLoading(false);
       }

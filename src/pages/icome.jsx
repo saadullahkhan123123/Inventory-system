@@ -43,7 +43,13 @@ const Income = () => {
 
       } catch (err) {
         console.error('Error fetching data:', err);
-        showNotification("error", "Failed to fetch data: " + (err.response?.data?.error || err.message));
+        const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch data';
+        const errorDetails = err.code === 'ECONNABORTED' 
+          ? 'Request timeout - backend may be slow or unreachable'
+          : err.message === 'Network Error'
+          ? 'Network error - check if backend is running'
+          : errorMsg;
+        showNotification("error", `Failed to fetch data: ${errorDetails}`);
       } finally {
         setLoading({ income: false });
       }
