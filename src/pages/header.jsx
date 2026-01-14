@@ -105,33 +105,60 @@ function Header() {
     { label: 'Customer History', path: '/customer-history' },
   ];
 
-  // Mobile drawer
+  // Mobile drawer - Responsive width
   const drawer = (
-      <Box sx={{ width: 250, pt: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ 
+        width: '100%', 
+        pt: 2,
+        px: { xs: 1, sm: 2 }
+      }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        px: { xs: 1.5, sm: 2 }, 
+        mb: 2 
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1 } }}>
           <img 
             src={saeedLogo} 
             alt="Logo" 
-            style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+            style={{ 
+              width: '36px', 
+              height: '36px', 
+              objectFit: 'contain',
+              minWidth: '36px'
+            }}
           />
-          <Typography variant="h6" fontWeight="bold" sx={{ 
-            background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
+          <Typography 
+            variant="h6" 
+            fontWeight="bold" 
+            sx={{ 
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontSize: { xs: '1rem', sm: '1.25rem' }
+            }}
+          >
             Inventory
           </Typography>
         </Box>
-        <IconButton onClick={handleDrawerToggle}>
-          <CloseIcon />
+        <IconButton 
+          onClick={handleDrawerToggle}
+          sx={{ 
+            minWidth: '40px',
+            minHeight: '40px',
+            p: { xs: 0.75, sm: 1 }
+          }}
+        >
+          <CloseIcon sx={{ fontSize: { xs: '20px', sm: '24px' } }} />
         </IconButton>
       </Box>
       
-      {/* Date & Day in Mobile Drawer */}
-      <Box sx={{ px: 2, mb: 2 }}>
+      {/* Date & Day in Mobile Drawer - Responsive */}
+      <Box sx={{ px: { xs: 1, sm: 2 }, mb: 2 }}>
         <Chip
-          icon={<CalendarTodayIcon />}
+          icon={<CalendarTodayIcon sx={{ fontSize: { xs: '16px', sm: '18px' } }} />}
           label={pakistanDate.date}
           size="small"
           sx={{
@@ -142,11 +169,12 @@ function Header() {
             color: 'primary.main',
             fontWeight: 'bold',
             fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-            fontSize: '0.7rem'
+            fontSize: { xs: '0.65rem', sm: '0.7rem' },
+            height: { xs: '28px', sm: '32px' }
           }}
         />
         <Chip
-          icon={<AccessTimeIcon />}
+          icon={<AccessTimeIcon sx={{ fontSize: { xs: '16px', sm: '18px' } }} />}
           label={`${pakistanDate.day} - ${pakistanDate.time}`}
           size="small"
           sx={{
@@ -156,33 +184,45 @@ function Header() {
             color: '#dc2626',
             fontWeight: 'bold',
             fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-            fontSize: '0.7rem'
+            fontSize: { xs: '0.65rem', sm: '0.7rem' },
+            height: { xs: '28px', sm: '32px' }
           }}
         />
       </Box>
       
-      <List>
+      <List sx={{ px: { xs: 0.5, sm: 1 } }}>
         {navItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
+          <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
-              selected={location.pathname === item.path}
+              selected={location.pathname === item.path || (item.path === '/slippage' && location.pathname.startsWith('/slips/'))}
               onClick={() => {
                 navigate(item.path);
                 setMobileOpen(false);
               }}
               sx={{
-                mx: 1,
+                mx: { xs: 0.5, sm: 1 },
                 borderRadius: 2,
+                py: { xs: 1, sm: 1.5 },
+                fontSize: { xs: '0.875rem', sm: '1rem' },
                 '&.Mui-selected': {
                   background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                   color: 'white',
                   '&:hover': {
                     background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
                   }
+                },
+                '&:hover': {
+                  backgroundColor: 'rgba(25, 118, 210, 0.08)',
                 }
               }}
             >
-              <ListItemText primary={item.label} />
+              <ListItemText 
+                primary={item.label}
+                primaryTypographyProps={{
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  fontWeight: location.pathname === item.path ? 600 : 400
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
@@ -205,17 +245,19 @@ function Header() {
           }}
         >
           <Toolbar sx={{ 
-            px: { xs: 2, sm: 3, md: 4 },
-            py: { xs: 1, sm: 1.5 },
-            minHeight: { xs: '56px', sm: '64px' } 
+            px: { xs: 1, sm: 2, md: 3 },
+            py: { xs: 0.75, sm: 1 },
+            minHeight: { xs: '48px', sm: '56px', md: '64px' },
+            gap: { xs: 1, sm: 1.5 }
           }}>
-            {/* Logo and Title - Left */}
+            {/* Logo and Title - Left - Fully Responsive */}
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: { xs: 1, sm: 1.5 },
-              mr: { xs: 2, sm: 4 },
-              flexShrink: 0
+              gap: { xs: 0.75, sm: 1, md: 1.5 },
+              mr: { xs: 1, sm: 2, md: 3 },
+              flexShrink: 0,
+              minWidth: 0 // Prevent overflow
             }}>
               {/* Full Logo - Desktop/Tablet */}
               <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}>
@@ -223,22 +265,28 @@ function Header() {
                   src={saeedLogo} 
                   alt="Saeed Autos and Bike" 
                   style={{ 
-                    width: '50px', 
-                    height: '50px',
+                    width: '48px', 
+                    height: '48px',
                     objectFit: 'contain',
-                    imageRendering: 'crisp-edges'
+                    imageRendering: 'crisp-edges',
+                    flexShrink: 0
                   }} 
                 />
-                <Box>
+                <Box sx={{ minWidth: 0 }}>
                   <Typography variant="h6" fontWeight="bold" sx={{ 
                     background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    lineHeight: 1.2
+                    lineHeight: 1.2,
+                    fontSize: { md: '1.25rem', lg: '1.5rem' }
                   }}>
                     Saeed Auto
                   </Typography>
-                  <Typography variant="caption" color="textSecondary" sx={{ display: 'block', lineHeight: 1 }}>
+                  <Typography variant="caption" color="textSecondary" sx={{ 
+                    display: 'block', 
+                    lineHeight: 1,
+                    fontSize: { md: '0.7rem', lg: '0.75rem' }
+                  }}>
                     Inventory System
                   </Typography>
                 </Box>
@@ -250,39 +298,42 @@ function Header() {
                   src={saeedLogo} 
                   alt="Logo" 
                   style={{ 
-                    width: '40px', 
-                    height: '40px',
+                    width: '36px', 
+                    height: '36px',
                     objectFit: 'contain',
-                    imageRendering: 'crisp-edges'
+                    imageRendering: 'crisp-edges',
+                    flexShrink: 0
                   }} 
                 />
               </Box>
 
-              {/* Icon Only - Mobile */}
+              {/* Icon Only - Mobile (300px-435px) */}
               <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center' }}>
                 <img 
                   src={saeedLogo} 
                   alt="Logo" 
                   style={{ 
-                    width: '32px', 
-                    height: '32px',
+                    width: '28px', 
+                    height: '28px',
                     objectFit: 'contain',
-                    imageRendering: 'crisp-edges'
+                    imageRendering: 'crisp-edges',
+                    flexShrink: 0
                   }} 
                 />
               </Box>
             </Box>
 
-            {/* Date & Day Display - Desktop */}
+            {/* Date & Day Display - Desktop/Tablet (hidden on mobile) */}
             <Box sx={{ 
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
-              gap: 1,
-              mr: 2,
-              flexShrink: 0
+              gap: { md: 0.75, lg: 1 },
+              mr: { md: 1.5, lg: 2 },
+              flexShrink: 0,
+              flexWrap: 'wrap'
             }}>
               <Chip
-                icon={<CalendarTodayIcon />}
+                icon={<CalendarTodayIcon sx={{ fontSize: '16px !important' }} />}
                 label={pakistanDate.date}
                 size="small"
                 sx={{
@@ -290,11 +341,18 @@ function Header() {
                   color: 'primary.main',
                   fontWeight: 'bold',
                   fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                  fontSize: '0.75rem'
+                  fontSize: { md: '0.7rem', lg: '0.75rem' },
+                  height: { md: '28px', lg: '32px' },
+                  maxWidth: { md: '180px', lg: '220px' },
+                  '& .MuiChip-label': {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }
                 }}
               />
               <Chip
-                icon={<AccessTimeIcon />}
+                icon={<AccessTimeIcon sx={{ fontSize: '16px !important' }} />}
                 label={`${pakistanDate.day} - ${pakistanDate.time}`}
                 size="small"
                 sx={{
@@ -302,16 +360,24 @@ function Header() {
                   color: '#dc2626',
                   fontWeight: 'bold',
                   fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                  fontSize: '0.75rem'
+                  fontSize: { md: '0.7rem', lg: '0.75rem' },
+                  height: { md: '28px', lg: '32px' },
+                  maxWidth: { md: '200px', lg: '240px' },
+                  '& .MuiChip-label': {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }
                 }}
               />
             </Box>
 
-            {/* Navigation - Desktop */}
+            {/* Navigation - Desktop/Tablet (hidden on mobile) */}
             <Box sx={{ 
               flexGrow: 1, 
               display: { xs: 'none', md: 'flex' },
-              justifyContent: 'center'
+              justifyContent: 'center',
+              overflow: 'hidden'
             }}>
               <Tabs
                 value={value}
@@ -353,35 +419,57 @@ function Header() {
               </Tabs>
             </Box>
 
-            {/* Mobile menu button */}
+            {/* Mobile menu button - Show on all screens below md (960px) */}
             <IconButton
               color="inherit"
               edge="end"
               onClick={handleDrawerToggle}
+              aria-label="open drawer"
               sx={{ 
                 display: { xs: 'flex', md: 'none' },
-                ml: 'auto'
+                ml: 'auto',
+                minWidth: '40px',
+                minHeight: '40px'
               }}
             >
-              <MenuIcon />
+              <MenuIcon sx={{ fontSize: { xs: '24px', sm: '28px' } }} />
             </IconButton>
           </Toolbar>
         </AppBar>
       </HideOnScroll>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer - Fully Responsive for 300px, 330px, 400px, 435px and above */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
         onClose={handleDrawerToggle}
         ModalProps={{
           keepMounted: true, // Better open performance on mobile.
+          BackdropProps: {
+            sx: {
+              backgroundColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          }
         }}
         sx={{
           display: { xs: 'block', md: 'none' },
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
-            width: 280,
+            // Responsive width for all mobile sizes
+            width: {
+              xs: 'calc(100vw - 40px)', // 300px-435px: 85-90% of viewport with padding
+              sm: 280, // 600px+: fixed width
+            },
+            maxWidth: {
+              xs: '90vw',
+              sm: 320
+            },
+            minWidth: {
+              xs: 240, // Minimum for very small screens (300px)
+              sm: 260
+            },
+            // Smooth slide animation
+            transition: 'width 0.3s ease-in-out',
           },
         }}
       >

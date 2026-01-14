@@ -221,7 +221,7 @@ const AddItems = () => {
       };
 
       console.log('Sending item data:', itemData);
-      console.log('API endpoint:', 'https://inventory-system-back-end.onrender.com/api/items');
+      console.log('API endpoint:', axiosApi.defaults.baseURL + '/items');
       
       const response = await axiosApi.items.create(itemData);
       
@@ -262,7 +262,7 @@ const AddItems = () => {
       let errorMessage = 'Failed to add item. Please try again.';
       
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
-        errorMessage = 'Cannot connect to server. Please make sure your backend server is running on https://inventory-system-back-end.onrender.com/';
+        errorMessage = 'Cannot connect to server. Please make sure your backend server is running.';
       } else if (error.response) {
         errorMessage = `Server error: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
       } else if (error.message) {
