@@ -12,7 +12,7 @@ import Income from './pages/icome';
 import SearchSlip from './pages/searchSlip';
 import ViewSlips from './pages/viewslips';
 import StartupAnimation from './components/StartupAnimation';
-import CustomerHistory from './pages/CustomerHistory';
+import CustomerHistory from './pages/CustomerHistoryEnhanced';
 import BackendStatus from './components/BackendStatus';
 
 // Page Transition Wrapper

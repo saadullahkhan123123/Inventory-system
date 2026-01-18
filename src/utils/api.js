@@ -73,6 +73,7 @@ axiosApi.slips = {
   getById: (id) => axiosApi.get(`/slips/${id}`),
   create: (data) => axiosApi.post('/slips', data),
   update: (id, data) => axiosApi.put(`/slips/${id}`, data),
+  cancel: (id, reason = '') => axiosApi.patch(`/slips/cancel/${id}`, { reason }),
   delete: (id) => axiosApi.delete(`/slips/${id}`),
 };
 
@@ -114,9 +115,9 @@ axiosApi.customerHistory = {
     console.log('📞 Calling customer history API:', `/customer-history/${encodedName}`);
     return axiosApi.get(`/customer-history/${encodedName}`, { params });
   },
-  getSuggestions: (query) => {
+  getSuggestions: (query, type = 'all') => {
     console.log('📞 Calling suggestions API:', '/customer-history/search/suggestions');
-    return axiosApi.get('/customer-history/search/suggestions', { params: { query } });
+    return axiosApi.get('/customer-history/search/suggestions', { params: { query, type } });
   },
 };
 

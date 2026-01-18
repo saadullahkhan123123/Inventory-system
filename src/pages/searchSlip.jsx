@@ -26,6 +26,8 @@ const SearchSlip = () => {
   const [selectedSlip, setSelectedSlip] = useState(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [editForm, setEditForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -34,10 +36,10 @@ const SearchSlip = () => {
     products: []
   });
 
-  // Fetch all slips on component mount
+  // Fetch all slips on component mount and when date filters change
   useEffect(() => {
     fetchAllSlips();
-  }, []);
+  }, [startDate, endDate]);
 
   // Update search results when search term or allSlips changes
   useEffect(() => {
@@ -73,11 +75,15 @@ const SearchSlip = () => {
     }
   }, [searchTerm, allSlips]);
 
-  // Fetch all slips
+  // Fetch all slips with optional date range filter
   const fetchAllSlips = async () => {
     setLoading(true);
     try {
-      const response = await axiosApi.slips.getAll({ limit: 1000 });
+      const params = { limit: 1000 };
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      
+      const response = await axiosApi.slips.getAll(params);
       const slips = response.data.slips || response.data || [];
       const slipsArray = Array.isArray(slips) ? slips : [];
       setAllSlips(slipsArray);
@@ -107,14 +113,22 @@ const SearchSlip = () => {
     }
   };
 
-  // Clear search
+  // Clear search and filters
   const clearSearch = () => {
     setSearchTerm('');
+    setStartDate('');
+    setEndDate('');
     // Results will update automatically via useEffect
   };
 
   // Open edit dialog and populate form
   const handleEditClick = (slip) => {
+    // Prevent editing cancelled slips
+    if (slip.status === 'Cancelled') {
+      showNotification('warning', 'Cannot edit a cancelled slip. Please restore it first.');
+      return;
+    }
+
     setSelectedSlip(slip);
     setEditForm({
       customerName: slip.customerName || '',
@@ -126,6 +140,18 @@ const SearchSlip = () => {
         quantity: product.quantity,
         unitPrice: product.unitPrice,
         totalPrice: product.totalPrice,
+        basePrice: product.basePrice || product.unitPrice,
+        productType: product.productType || 'Cover',
+        coverType: product.coverType || '',
+        plateCompany: product.plateCompany || '',
+        bikeName: product.bikeName || '',
+        plateType: product.plateType || '',
+        formCompany: product.formCompany || '',
+        formType: product.formType || '',
+        formVariant: product.formVariant || '',
+        category: product.category || '',
+        subcategory: product.subcategory || '',
+        company: product.company || '',
         originalQuantity: product.quantity // Store original for inventory updates
       })) || []
     });
@@ -232,7 +258,19 @@ const SearchSlip = () => {
           productName: product.productName.trim(),
           quantity: parseInt(product.quantity),
           unitPrice: parseFloat(product.unitPrice),
-          totalPrice: (parseInt(product.quantity) * parseFloat(product.unitPrice))
+          totalPrice: (parseInt(product.quantity) * parseFloat(product.unitPrice)),
+          basePrice: parseFloat(product.basePrice || product.unitPrice),
+          productType: product.productType || 'Cover',
+          coverType: product.coverType || '',
+          plateCompany: product.plateCompany || '',
+          bikeName: product.bikeName || '',
+          plateType: product.plateType || '',
+          formCompany: product.formCompany || '',
+          formType: product.formType || '',
+          formVariant: product.formVariant || '',
+          category: product.category || '',
+          subcategory: product.subcategory || '',
+          company: product.company || ''
         })),
         subtotal: subtotal,
         totalAmount: totalAmount,
@@ -268,24 +306,32 @@ const SearchSlip = () => {
     try {
       setLoading(true);
 
-      // Create cancellation record and adjust inventory
-      const cancelData = {
-        ...selectedSlip,
-        status: 'Cancelled',
-        notes: `CANCELLED - ${selectedSlip.notes || 'No reason provided'}`,
-        cancelledAt: new Date().toISOString()
-      };
+      // Check if already cancelled
+      if (selectedSlip.status === 'Cancelled') {
+        showNotification('warning', 'This slip is already cancelled.');
+        setOpenCancelDialog(false);
+        return;
+      }
 
-      await axiosApi.slips.update(selectedSlip._id, cancelData);
-      showNotification('success', 'Slip cancelled successfully! Inventory has been adjusted.');
-      setOpenCancelDialog(false);
-      setSelectedSlip(null);
-      // Refresh all slips
-      await fetchAllSlips();
+      // Use dedicated cancel endpoint for better synchronization
+      const response = await axiosApi.slips.cancel(selectedSlip._id, 'Cancelled by admin');
+      
+      if (response.data) {
+        const details = response.data.details || {};
+        showNotification('success', 
+          `Slip cancelled successfully! ${details.inventoryItemsRestored || 0} item(s) restored to inventory. ${details.incomeRecordsUpdated || 0} income record(s) updated.`
+        );
+        setOpenCancelDialog(false);
+        setSelectedSlip(null);
+        // Refresh all slips
+        await fetchAllSlips();
+      }
       
     } catch (error) {
       console.error('Cancel error:', error);
-      showNotification('error', `Failed to cancel slip: ${error.response?.data?.error || error.message}`);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to cancel slip';
+      const errorDetails = error.response?.data?.details || '';
+      showNotification('error', `${errorMsg}${errorDetails ? `: ${errorDetails}` : ''}`);
     } finally {
       setLoading(false);
     }
@@ -361,7 +407,7 @@ const SearchSlip = () => {
         </Typography>
       </Box>
 
-      {/* Simple Search Section */}
+      {/* Enhanced Search Section with Date Range */}
       <Paper sx={{ 
         p: { xs: 2, sm: 3 }, 
         mb: { xs: 2, sm: 3 },
@@ -370,10 +416,10 @@ const SearchSlip = () => {
         boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
       }} elevation={0}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={5}>
             <TextField
               fullWidth
-              label="Search by Product Name, Customer, or Slip ID"
+              label="Search by Product Name, Customer, Phone, or Slip ID"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -382,30 +428,58 @@ const SearchSlip = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Stack direction="row" spacing={2}>
+          <Grid item xs={12} sm={6} md={2.5}>
+            <TextField
+              fullWidth
+              type="date"
+              label="Start Date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.5}>
+            <TextField
+              fullWidth
+              type="date"
+              label="End Date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+              inputProps={{ 
+                min: startDate || undefined 
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Stack direction="row" spacing={1}>
               <Button
                 variant="contained"
                 startIcon={<Search />}
                 onClick={handleSearch}
                 disabled={loading}
                 sx={{ flex: 1 }}
+                size="small"
               >
-                {loading ? <CircularProgress size={24} /> : 'Search'}
+                {loading ? <CircularProgress size={20} /> : 'Search'}
               </Button>
               <Button
                 variant="outlined"
                 startIcon={<Refresh />}
                 onClick={fetchAllSlips}
+                size="small"
               >
                 Refresh
               </Button>
-              {searchTerm && (
+              {(searchTerm || startDate || endDate) && (
                 <Button
                   variant="outlined"
                   startIcon={<Clear />}
                   onClick={clearSearch}
                   color="secondary"
+                  size="small"
                 >
                   Clear
                 </Button>
@@ -750,9 +824,15 @@ const SearchSlip = () => {
               />
 
               <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>Note:</strong> Changing product quantities or prices will automatically adjust inventory levels and update income records.
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Note:</strong> Changing product quantities or prices will automatically:
                 </Typography>
+                <Box component="ul" sx={{ mt: 1, pl: 2, mb: 0 }}>
+                  <li>Restore old quantities to inventory</li>
+                  <li>Deduct new quantities from inventory</li>
+                  <li>Update income records with new amounts</li>
+                  <li>Maintain data consistency across all systems</li>
+                </Box>
               </Alert>
             </Box>
           )}
@@ -794,21 +874,52 @@ const SearchSlip = () => {
           Cancel Slip - {selectedSlip?.slipNumber}
         </DialogTitle>
         <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            This action cannot be undone!
-          </Alert>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to cancel this slip? This will:
-          </Typography>
-          <ul>
-            <li>Mark the slip as cancelled</li>
-            <li>Return all products to inventory</li>
-            <li>Remove the sale from income records</li>
-            <li>Create an audit trail</li>
-          </ul>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
-            Slip Total: <strong>Rs {selectedSlip?.totalAmount?.toLocaleString()}</strong>
-          </Typography>
+          {selectedSlip?.status === 'Cancelled' ? (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              This slip is already cancelled!
+            </Alert>
+          ) : (
+            <>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                This action cannot be undone!
+              </Alert>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                Are you sure you want to cancel this slip? This will:
+              </Typography>
+              <Box component="ul" sx={{ pl: 2, mb: 2 }}>
+                <li>Mark the slip as <strong>"Cancelled"</strong> (status change)</li>
+                <li>Return all products to inventory stock</li>
+                <li>Remove the sale amount from income records</li>
+                <li>Create an audit trail with cancellation timestamp</li>
+                <li>Prevent duplicate cancellation</li>
+              </Box>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: 'rgba(25, 118, 210, 0.1)', 
+                borderRadius: 1,
+                mb: 2 
+              }}>
+                <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
+                  Slip Details:
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Slip #:</strong> {selectedSlip?.slipNumber || selectedSlip?._id}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Customer:</strong> {selectedSlip?.customerName || 'Walk-in Customer'}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Total Amount:</strong> Rs {selectedSlip?.totalAmount?.toLocaleString()}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Products:</strong> {selectedSlip?.products?.length || 0} item(s)
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Total Quantity:</strong> {selectedSlip?.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0} units
+                </Typography>
+              </Box>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCancelDialog(false)}>Keep Slip</Button>

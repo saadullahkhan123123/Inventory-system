@@ -27,7 +27,6 @@ const AddItems = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [formData, setFormData] = useState({
-    name: '',
     productType: 'Cover', // Cover, Form, or Plate
     coverType: '', // Only if productType is Cover
     plateCompany: '', // Only if productType is Plate
@@ -37,14 +36,11 @@ const AddItems = () => {
     formType: '', // Only if productType is Form
     formVariant: '', // Only if productType is Form
     formBikeName: '', // Only if productType is Form (bike for form variant)
-    category: '',
-    subcategory: '',
     company: '',
     price: '',
     basePrice: '',
     quantity: '',
     description: '',
-    sku: '',
     supplier: ''
   });
 
@@ -120,14 +116,6 @@ const AddItems = () => {
   };
 
   const validateForm = () => {
-    if (!formData.name.trim()) {
-      showNotification('error', 'Product name is required');
-      return false;
-    }
-    if (!formData.category.trim()) {
-      showNotification('error', 'Category is required');
-      return false;
-    }
     if (!formData.price || formData.price <= 0) {
       showNotification('error', 'Valid price is required');
       return false;
@@ -200,7 +188,6 @@ const AddItems = () => {
       }
 
       const itemData = {
-        name: formData.name.trim(),
         productType: formData.productType,
         coverType: formData.productType === 'Cover' ? formData.coverType : '',
         plateCompany: formData.productType === 'Plate' ? formData.plateCompany : '',
@@ -209,14 +196,11 @@ const AddItems = () => {
         formCompany: formData.productType === 'Form' ? formData.formCompany : '',
         formType: formData.productType === 'Form' ? formData.formType : '',
         formVariant: formData.productType === 'Form' ? formData.formVariant : '',
-        category: formData.category.trim(),
-        subcategory: formData.subcategory.trim(),
         company: formData.company.trim(),
         price: parseFloat(formData.price),
         basePrice: parseFloat(formData.basePrice || formData.price),
         quantity: parseInt(formData.quantity),
         description: formData.description.trim(),
-        sku: formData.sku.trim(),
         supplier: formData.supplier.trim()
       };
 
@@ -231,7 +215,6 @@ const AddItems = () => {
         showNotification('success', 'Item added successfully!');
         // Reset form
         setFormData({
-          name: '',
           productType: 'Cover',
           coverType: '',
           plateCompany: '',
@@ -241,14 +224,11 @@ const AddItems = () => {
           formType: '',
           formVariant: '',
           formBikeName: '',
-          category: '',
-          subcategory: '',
           company: '',
           price: '',
           basePrice: '',
           quantity: '',
           description: '',
-          sku: '',
           supplier: ''
         });
       } else {
@@ -314,27 +294,6 @@ const AddItems = () => {
 
         <form onSubmit={handleSubmit}>
           <Grid container spacing={{ xs: 2, sm: 3 }}>
-            {/* Product Name */}
-            <Grid item xs={12} sm={6}>
-              <Tooltip title="Enter the full name of the product" arrow placement="top">
-              <TextField
-                fullWidth
-                label="Product Name *"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                placeholder="e.g., Honda Civic Oil Filter"
-                  size={isMobile ? 'small' : 'medium'}
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-                    }
-                  }}
-                />
-              </Tooltip>
-            </Grid>
-
             {/* Product Type */}
             <Grid item xs={12} sm={6}>
               <Tooltip title="Select the product type. This determines pricing rules and available options." arrow placement="top">
@@ -582,43 +541,6 @@ const AddItems = () => {
               </>
             )}
 
-            {/* Category */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Category *"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                required
-                placeholder="e.g., Oil Filters, Brake Pads, Engine Parts"
-                size={isMobile ? 'small' : 'medium'}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-                  }
-                }}
-              />
-            </Grid>
-
-            {/* Subcategory */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Subcategory"
-                name="subcategory"
-                value={formData.subcategory}
-                onChange={handleInputChange}
-                placeholder="e.g., Synthetic, Conventional, Premium"
-                size={isMobile ? 'small' : 'medium'}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-                  }
-                }}
-              />
-            </Grid>
-
             {/* Company */}
             <Grid item xs={12} sm={6}>
               <TextField
@@ -710,26 +632,6 @@ const AddItems = () => {
                 }}
               />
             </Grid>
-
-            {/* SKU */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="SKU/Product Code"
-                name="sku"
-                value={formData.sku}
-                onChange={handleInputChange}
-                placeholder="e.g., HC-OF-001"
-                size={isMobile ? 'small' : 'medium'}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-                  }
-                }}
-              />
-            </Grid>
-
-           
 
             {/* Submit Button */}
             <Grid item xs={12}>
