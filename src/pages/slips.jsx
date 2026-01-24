@@ -37,6 +37,7 @@ const Slips = () => {
   // Product structure with pricing
   const [formData, setFormData] = useState({
     customerName: '',
+    paymentMethod: 'Cash', // Cash, Udhar, Account
     items: [{ 
       productType: 'Cover',
       coverType: '',
@@ -48,7 +49,6 @@ const Slips = () => {
       formVariant: '',
       formBikeName: '',
       category: '', 
-      product: '', 
       quantity: 1, 
       basePrice: 0,
       price: 0, 
@@ -178,6 +178,102 @@ const Slips = () => {
     };
   };
 
+  // Find product from inventory based on item attributes
+  const findProductFromInventory = (item) => {
+    if (!products || products.length === 0) return null;
+    
+    const productType = item.productType || '';
+    
+    // Try to find matching product based on product type and attributes
+    const matchingProduct = products.find(product => {
+      // Match by product type first (if product has a productType field)
+      if (product.productType && product.productType !== productType) {
+        return false;
+      }
+      
+      // For Cover products, match by coverType
+      if (productType === 'Cover' && item.coverType) {
+        const productName = (product.name || '').toLowerCase();
+        const coverType = (item.coverType || '').toLowerCase();
+        // Check if product name contains the cover type
+        if (productName.includes(coverType) || 
+            (product.coverType && product.coverType.toLowerCase() === coverType)) {
+          return true;
+        }
+      }
+      
+      // For Plate products, match by plateType, plateCompany, and bikeName
+      if (productType === 'Plate') {
+        let matches = true;
+        if (item.plateType) {
+          const productName = (product.name || '').toLowerCase();
+          const plateType = (item.plateType || '').toLowerCase();
+          if (!productName.includes(plateType) && 
+              !(product.plateType && product.plateType.toLowerCase() === plateType)) {
+            matches = false;
+          }
+        }
+        if (item.plateCompany && matches) {
+          if (product.plateCompany && product.plateCompany.toLowerCase() !== (item.plateCompany || '').toLowerCase()) {
+            matches = false;
+          }
+        }
+        if (item.bikeName && matches) {
+          if (product.bikeName && product.bikeName.toLowerCase() !== (item.bikeName || '').toLowerCase()) {
+            matches = false;
+          }
+        }
+        if (matches) return true;
+      }
+      
+      // For Form products, match by formVariant, formType, and formCompany
+      if (productType === 'Form') {
+        let matches = true;
+        if (item.formVariant) {
+          const productName = (product.name || '').toLowerCase();
+          const formVariant = (item.formVariant || '').toLowerCase();
+          if (!productName.includes(formVariant) && 
+              !(product.formVariant && product.formVariant.toLowerCase() === formVariant)) {
+            matches = false;
+          }
+        }
+        if (item.formType && matches) {
+          if (product.formType && product.formType.toLowerCase() !== (item.formType || '').toLowerCase()) {
+            matches = false;
+          }
+        }
+        if (item.formCompany && matches) {
+          if (product.formCompany && product.formCompany.toLowerCase() !== (item.formCompany || '').toLowerCase()) {
+            matches = false;
+          }
+        }
+        if (matches) return true;
+      }
+      
+      // Match by category if provided
+      if (item.category && product.category) {
+        if (product.category.toLowerCase() === (item.category || '').toLowerCase()) {
+          // Additional matching based on product type
+          if (!productType || (product.productType && product.productType === productType)) {
+            return true;
+          }
+        }
+      }
+      
+      // Match by name if it contains product type
+      if (product.name) {
+        const productName = product.name.toLowerCase();
+        if (productType && productName.includes(productType.toLowerCase())) {
+          return true;
+        }
+      }
+      
+      return false;
+    });
+    
+    return matchingProduct || null;
+  };
+
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
 
@@ -193,22 +289,51 @@ const Slips = () => {
         formType: value !== 'Form' ? '' : updatedItems[index].formType,
         formVariant: value !== 'Form' ? '' : updatedItems[index].formVariant,
         formBikeName: value !== 'Form' ? '' : updatedItems[index].formBikeName,
-        product: '',
         basePrice: 0,
         price: 0,
         total: 0,
         discountAmount: 0,
         discountType: 'none'
       };
+      // Try to auto-find product after productType change
+      const foundProduct = findProductFromInventory(updatedItems[index]);
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
+      const pricing = calculateItemPricing(updatedItems[index]);
+      updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'coverType') {
       updatedItems[index].coverType = value;
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], coverType: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
       // Recalculate pricing when cover type changes
       const pricing = calculateItemPricing(updatedItems[index]);
       updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'plateCompany') {
       updatedItems[index].plateCompany = value;
       updatedItems[index].plateType = ''; // Reset plate type when company changes
-      updatedItems[index].product = ''; // Reset product selection
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], plateCompany: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
+      const pricing = calculateItemPricing(updatedItems[index]);
+      updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'bikeName') {
       updatedItems[index].bikeName = value;
       // Reset dependent fields
@@ -216,61 +341,98 @@ const Slips = () => {
         updatedItems[index].plateCompany = '';
       }
       updatedItems[index].plateType = '';
-      updatedItems[index].product = '';
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], bikeName: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
+      const pricing = calculateItemPricing(updatedItems[index]);
+      updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'plateType') {
       updatedItems[index].plateType = value;
-      updatedItems[index].product = ''; // Reset product selection
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], plateType: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
+      const pricing = calculateItemPricing(updatedItems[index]);
+      updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'formCompany') {
       updatedItems[index].formCompany = value;
       updatedItems[index].formType = ''; // Reset form type
       updatedItems[index].formVariant = ''; // Reset variant
       updatedItems[index].formBikeName = ''; // Reset bike
-      updatedItems[index].product = ''; // Reset product selection
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], formCompany: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
+      const pricing = calculateItemPricing(updatedItems[index]);
+      updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'formType') {
       updatedItems[index].formType = value;
       updatedItems[index].formVariant = ''; // Reset variant
       updatedItems[index].formBikeName = ''; // Reset bike
-      updatedItems[index].product = ''; // Reset product selection
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], formType: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
+      const pricing = calculateItemPricing(updatedItems[index]);
+      updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'formVariant') {
       updatedItems[index].formVariant = value;
       updatedItems[index].formBikeName = ''; // Reset bike
-      updatedItems[index].product = ''; // Reset product selection
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], formVariant: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
+      const pricing = calculateItemPricing(updatedItems[index]);
+      updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'formBikeName') {
       updatedItems[index].formBikeName = value;
-      updatedItems[index].product = ''; // Reset product selection
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], formBikeName: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].category = foundProduct.category || '';
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
+      const pricing = calculateItemPricing(updatedItems[index]);
+      updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'category') {
-      updatedItems[index] = { 
-        ...updatedItems[index],
-        category: value, 
-        product: '', 
-        quantity: 1, 
-        basePrice: 0,
-        price: 0, 
-        total: 0, 
-        subcategory: '', 
-        company: '',
-        discountAmount: 0,
-        discountType: 'none'
-      };
-    } else if (field === 'product') {
-      const product = products.find(p => p._id === value);
-      updatedItems[index].product = value;
-      updatedItems[index].basePrice = product?.basePrice || product?.price || 0;
-      updatedItems[index].price = product?.price || 0;
-      updatedItems[index].productType = product?.productType || 'Cover';
-      updatedItems[index].coverType = product?.coverType || '';
-      updatedItems[index].plateCompany = product?.plateCompany || '';
-      updatedItems[index].bikeName = product?.bikeName || '';
-      updatedItems[index].plateType = product?.plateType || '';
-      updatedItems[index].formCompany = product?.formCompany || '';
-      updatedItems[index].formType = product?.formType || '';
-      updatedItems[index].formVariant = product?.formVariant || '';
-      updatedItems[index].formBikeName = product?.bikeName || ''; // Form uses bikeName field
-      updatedItems[index].category = product?.category || '';
-      updatedItems[index].subcategory = product?.subcategory || '';
-      updatedItems[index].company = product?.company || '';
-      
-      // Recalculate pricing
+      updatedItems[index].category = value;
+      // Auto-find product and set price
+      const foundProduct = findProductFromInventory({ ...updatedItems[index], category: value });
+      if (foundProduct) {
+        updatedItems[index].basePrice = foundProduct.basePrice || foundProduct.price || 0;
+        updatedItems[index].price = foundProduct.price || foundProduct.basePrice || 0;
+        updatedItems[index].subcategory = foundProduct.subcategory || '';
+        updatedItems[index].company = foundProduct.company || '';
+      }
       const pricing = calculateItemPricing(updatedItems[index]);
       updatedItems[index] = { ...updatedItems[index], ...pricing };
     } else if (field === 'quantity') {
@@ -308,7 +470,6 @@ const Slips = () => {
         formVariant: '',
         formBikeName: '',
         category: '', 
-        product: '', 
         quantity: 1, 
         basePrice: 0,
         price: 0, 
@@ -394,14 +555,6 @@ const Slips = () => {
           }
         }
       }
-      if (!item.category) {
-        showNotification('error', 'Select category for all items.');
-        return false;
-      }
-      if (!item.product) {
-        showNotification('error', 'Select product for all items.');
-        return false;
-      }
       if (item.quantity <= 0) {
         showNotification('error', 'Quantity must be greater than 0.');
         return false;
@@ -421,28 +574,40 @@ const Slips = () => {
 
     try {
       const productsData = formData.items.map(item => {
-        const product = products.find(p => p._id === item.product);
+        const foundProduct = findProductFromInventory(item);
         const pricing = calculateItemPricing(item);
         
+        // Generate product name from attributes
+        let productName = '';
+        if (item.productType === 'Cover' && item.coverType) {
+          productName = `${item.productType} - ${item.coverType}`;
+        } else if (item.productType === 'Plate' && item.plateType) {
+          productName = `${item.productType} - ${item.plateType}${item.bikeName ? ` (${item.bikeName})` : ''}`;
+        } else if (item.productType === 'Form' && item.formVariant) {
+          productName = `${item.productType} - ${item.formVariant}${item.formCompany ? ` (${item.formCompany})` : ''}`;
+        } else {
+          productName = item.productType || 'Product';
+        }
+        
         return {
-          productName: product?.name || 'Unknown Product',
-          productType: item.productType || product?.productType || 'Cover',
-          coverType: item.coverType || product?.coverType || '',
-          plateCompany: item.plateCompany || product?.plateCompany || '',
-          bikeName: item.bikeName || product?.bikeName || '',
-          plateType: item.plateType || product?.plateType || '',
-          formCompany: item.formCompany || product?.formCompany || '',
-          formType: item.formType || product?.formType || '',
-          formVariant: item.formVariant || product?.formVariant || '',
+          productName: foundProduct?.name || productName,
+          productType: item.productType || 'Cover',
+          coverType: item.productType === 'Cover' ? (item.coverType || '') : '',
+          plateCompany: item.productType === 'Plate' ? (item.plateCompany || '') : '',
+          bikeName: item.productType === 'Plate' ? (item.bikeName || '') : (item.productType === 'Form' ? (item.formBikeName || '') : ''),
+          plateType: item.productType === 'Plate' ? (item.plateType || '') : '',
+          formCompany: item.productType === 'Form' ? (item.formCompany || '') : '',
+          formType: item.productType === 'Form' ? (item.formType || '') : '',
+          formVariant: item.productType === 'Form' ? (item.formVariant || '') : '',
           quantity: item.quantity,
-          basePrice: item.basePrice || product?.basePrice || product?.price || 0,
+          basePrice: item.basePrice || 0,
           unitPrice: pricing.unitPrice,
           discountAmount: pricing.discountAmount,
           discountType: pricing.discountType,
           totalPrice: pricing.total,
-          category: item.category || product?.category || '',
-          subcategory: item.subcategory || product?.subcategory || '',
-          company: item.company || product?.company || ''
+          category: item.category || '',
+          subcategory: item.subcategory || '',
+          company: item.company || ''
         };
       });
 
@@ -451,6 +616,7 @@ const Slips = () => {
       // ✔ UPDATED — ONLY SEND WHAT BACKEND ACCEPTS
       const slipData = {
         customerName: formData.customerName,
+        paymentMethod: formData.paymentMethod || 'Cash',
         products: productsData,
         subtotal,
         totalAmount
@@ -465,6 +631,7 @@ const Slips = () => {
       // Reset form
       setFormData({
         customerName: '',
+        paymentMethod: 'Cash',
         items: [{ 
           productType: 'Cover',
           coverType: '',
@@ -476,7 +643,6 @@ const Slips = () => {
           formVariant: '',
           formBikeName: '',
           category: '', 
-          product: '', 
           quantity: 1, 
           basePrice: 0,
           price: 0, 
@@ -551,7 +717,7 @@ const Slips = () => {
           <Grid container spacing={{ xs: 2, sm: 3 }}>
 
             {/* Customer Name */}
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <Tooltip title="Enter the name of the customer for this slip" arrow placement="top">
               <TextField
                 fullWidth
@@ -568,6 +734,25 @@ const Slips = () => {
                     )
                   }}
                 />
+              </Tooltip>
+            </Grid>
+
+            {/* Payment Method */}
+            <Grid item xs={12} sm={6}>
+              <Tooltip title="Select payment method for this slip" arrow placement="top">
+                <FormControl fullWidth required>
+                  <InputLabel>Payment Method *</InputLabel>
+                  <Select
+                    name="paymentMethod"
+                    value={formData.paymentMethod || 'Cash'}
+                    onChange={handleInputChange}
+                    label="Payment Method *"
+                  >
+                    <MenuItem value="Cash">Cash</MenuItem>
+                    <MenuItem value="Udhar">Udhar (Credit)</MenuItem>
+                    <MenuItem value="Account">Account</MenuItem>
+                  </Select>
+                </FormControl>
               </Tooltip>
             </Grid>
 
@@ -831,132 +1016,28 @@ const Slips = () => {
                         </>
                       )}
 
-                      {/* Category */}
-                      <Grid item xs={12} sm={6} md={item.productType === 'Cover' ? 2 : 3}>
-                        <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                          <InputLabel>Category *</InputLabel>
-                          <Select
-                            value={item.category}
-                            onChange={(e) => handleItemChange(index, 'category', e.target.value)}
-                            label="Category *"
-                          >
-                            <MenuItem value="">Select Category</MenuItem>
-                            {categories.map(category => (
-                              <MenuItem key={category} value={category}>{category}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-
-                      {/* Product */}
-                      <Grid item xs={12} sm={6} md={item.productType === 'Cover' ? 3 : 4}>
-                        <Tooltip title="Select product from inventory. Base price will auto-fill." arrow>
-                          <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                          <InputLabel>Product *</InputLabel>
-                          <Select
-                            value={item.product}
-                            onChange={(e) => handleItemChange(index, 'product', e.target.value)}
-                            label="Product *"
-                            disabled={!item.category}
-                          >
-                            <MenuItem value="">Select Product</MenuItem>
-                            {products
-                                .filter(p => {
-                                  // Filter by category if selected
-                                  if (item.category && p.category !== item.category) return false;
-                                  
-                                  // Filter by product type
-                                  if (p.productType !== item.productType) return false;
-                                  
-                                  // For Cover type, optionally filter by coverType
-                                  if (item.productType === 'Cover' && item.coverType && p.coverType !== item.coverType) {
-                                    return false;
-                                  }
-                                  
-                                  // For Plate type, filter by plate attributes
-                                  if (item.productType === 'Plate') {
-                                    // Filter by bike name
-                                    if (item.bikeName && p.bikeName !== item.bikeName) return false;
-                                    
-                                    // Filter by company (if bike requires it)
-                                    if (item.bikeName === '70' && item.plateCompany && p.plateCompany !== item.plateCompany) {
-                                      return false;
-                                    }
-                                    
-                                    // Filter by plate type
-                                    if (item.plateType && p.plateType !== item.plateType) return false;
-                                    
-                                    // Validate combination is valid
-                                    if (item.bikeName && item.plateType) {
-                                      if (!isValidPlateCombination(item.bikeName, item.plateCompany || '', item.plateType)) {
-                                        return false;
-                                      }
-                                    }
-                                  }
-                                  
-                                  // For Form type, filter by form attributes
-                                  if (item.productType === 'Form') {
-                                    // Filter by company
-                                    if (item.formCompany && p.formCompany !== item.formCompany) return false;
-                                    
-                                    // Filter by form type
-                                    if (item.formType && p.formType !== item.formType) return false;
-                                    
-                                    // Filter by variant
-                                    if (item.formVariant && p.formVariant !== item.formVariant) return false;
-                                    
-                                    // Filter by bike if required
-                                    if (item.formBikeName && p.bikeName !== item.formBikeName) return false;
-                                    
-                                    // Validate combination is valid
-                                    if (item.formCompany && item.formType && item.formVariant) {
-                                      if (!isValidFormCombination(item.formCompany, item.formType, item.formVariant, item.formBikeName || '')) {
-                                        return false;
-                                      }
-                                    }
-                                  }
-                                  
-                                  return true;
-                                })
-                              .map(product => (
-                                <MenuItem key={product._id} value={product._id}>
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                                      <Typography variant="body2" fontWeight="bold">
-                                        {product.name} - Rs {product.basePrice || product.price}
-                                      </Typography>
-                                      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                                        {product.coverType && (
-                                          <Chip label={product.coverType} size="small" variant="outlined" color="primary" sx={{ fontSize: '0.65rem', height: '18px' }} />
-                                        )}
-                                        {product.productType === 'Plate' && product.bikeName && (
-                                          <Chip label={`${product.bikeName}${product.plateCompany ? ` - ${product.plateCompany}` : ''}`} size="small" variant="outlined" color="secondary" sx={{ fontSize: '0.65rem', height: '18px' }} />
-                                        )}
-                                        {product.productType === 'Plate' && product.plateType && (
-                                          <Chip label={product.plateType} size="small" variant="outlined" color="secondary" sx={{ fontSize: '0.65rem', height: '18px' }} />
-                                        )}
-                                        {product.productType === 'Form' && product.formCompany && (
-                                          <Chip label={`${product.formCompany} ${product.formType}`} size="small" variant="outlined" color="info" sx={{ fontSize: '0.65rem', height: '18px' }} />
-                                        )}
-                                        {product.productType === 'Form' && product.formVariant && (
-                                          <Chip label={product.formVariant} size="small" variant="outlined" color="info" sx={{ fontSize: '0.65rem', height: '18px' }} />
-                                        )}
-                                        {product.productType === 'Form' && product.bikeName && (
-                                          <Chip label={`Bike: ${product.bikeName}`} size="small" variant="outlined" color="info" sx={{ fontSize: '0.65rem', height: '18px' }} />
-                                        )}
-                                        {product.subcategory && (
-                                          <Chip label={product.subcategory} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: '18px' }} />
-                                        )}
-                                        {product.company && (
-                                          <Chip label={product.company} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: '18px' }} />
-                                        )}
-                                      </Box>
-                                    </Box>
-                                </MenuItem>
-                              ))}
-                          </Select>
-                        </FormControl>
-                        </Tooltip>
-                      </Grid>
+                      {/* Price Display - Auto-filled from inventory */}
+                      {item.basePrice > 0 && (
+                        <Grid item xs={12} sm={6} md={2}>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            height: '100%',
+                            minHeight: { xs: '40px', sm: '56px' },
+                            p: 1,
+                            bgcolor: 'info.light',
+                            borderRadius: 1
+                          }}>
+                            <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
+                              Auto Price
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" color="info.main" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                              Rs {item.basePrice?.toFixed(2) || '0.00'}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
 
                       {/* Quantity */}
                       <Grid item xs={6} sm={4} md={1.5}>
@@ -1115,7 +1196,20 @@ const Slips = () => {
                 <Box sx={{ mb: 2 }}>
                   {formData.items.map((item, idx) => {
                     const pricing = calculateItemPricing(item);
-                    const product = products.find(p => p._id === item.product);
+                    const foundProduct = findProductFromInventory(item);
+                    
+                    // Generate product name
+                    let productName = '';
+                    if (item.productType === 'Cover' && item.coverType) {
+                      productName = `${item.productType} - ${item.coverType}`;
+                    } else if (item.productType === 'Plate' && item.plateType) {
+                      productName = `${item.productType} - ${item.plateType}${item.bikeName ? ` (${item.bikeName})` : ''}`;
+                    } else if (item.productType === 'Form' && item.formVariant) {
+                      productName = `${item.productType} - ${item.formVariant}${item.formCompany ? ` (${item.formCompany})` : ''}`;
+                    } else {
+                      productName = item.productType || 'Product';
+                    }
+                    
                     return (
                       <Box key={idx} sx={{ 
                         display: 'flex', 
@@ -1125,7 +1219,7 @@ const Slips = () => {
                         opacity: 0.9
                       }}>
                         <Typography variant="body2">
-                          {product?.name || 'Product'} x{item.quantity}
+                          {foundProduct?.name || productName} x{item.quantity}
                         </Typography>
                         <Typography variant="body2">
                           Rs {pricing.total.toFixed(2)}

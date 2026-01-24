@@ -84,7 +84,7 @@ function Header() {
       return '/slippage';
     }
     
-    const validPaths = ['/inventory', '/additems', '/income', '/slips', '/slippage', '/search-slips', '/dashboard'];
+    const validPaths = ['/inventory', '/additems', '/income', '/slips', '/slippage', '/search-slips', '/search-products', '/dashboard'];
     if (validPaths.includes(path)) {
       return path;
     }
@@ -97,6 +97,7 @@ function Header() {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Inventory', path: '/inventory' },
+    { label: 'Search Products', path: '/search-products' },
     { label: 'Add Items', path: '/additems' },
     { label: 'Income', path: '/income' },
     { label: 'Create Slip', path: '/slips' },
@@ -325,10 +326,10 @@ function Header() {
 
             {/* Date & Day Display - Desktop/Tablet (hidden on mobile) */}
             <Box sx={{ 
-              display: { xs: 'none', md: 'flex' },
+              display: { xs: 'none', lg: 'flex' },
               alignItems: 'center',
-              gap: { md: 0.75, lg: 1 },
-              mr: { md: 1.5, lg: 2 },
+              gap: { lg: 0.75, xl: 1 },
+              mr: { lg: 1.5, xl: 2 },
               flexShrink: 0,
               flexWrap: 'wrap'
             }}>
@@ -372,10 +373,10 @@ function Header() {
               />
             </Box>
 
-            {/* Navigation - Desktop/Tablet (hidden on mobile) */}
+            {/* Navigation - Desktop/Tablet (hidden on mobile - always use hamburger on mobile) */}
             <Box sx={{ 
               flexGrow: 1, 
-              display: { xs: 'none', md: 'flex' },
+              display: { xs: 'none', lg: 'flex' },
               justifyContent: 'center',
               overflow: 'hidden'
             }}>
@@ -419,20 +420,21 @@ function Header() {
               </Tabs>
             </Box>
 
-            {/* Mobile menu button - Show on all screens below md (960px) */}
+            {/* Mobile menu button - Always show on screens below lg (1200px) */}
             <IconButton
               color="inherit"
               edge="end"
               onClick={handleDrawerToggle}
               aria-label="open drawer"
               sx={{ 
-                display: { xs: 'flex', md: 'none' },
+                display: { xs: 'flex', lg: 'none' },
                 ml: 'auto',
-                minWidth: '40px',
-                minHeight: '40px'
+                minWidth: { xs: '36px', sm: '40px' },
+                minHeight: { xs: '36px', sm: '40px' },
+                p: { xs: 0.75, sm: 1 }
               }}
             >
-              <MenuIcon sx={{ fontSize: { xs: '24px', sm: '28px' } }} />
+              <MenuIcon sx={{ fontSize: { xs: '20px', sm: '24px', md: '28px' } }} />
             </IconButton>
           </Toolbar>
         </AppBar>
@@ -452,24 +454,27 @@ function Header() {
           }
         }}
         sx={{
-          display: { xs: 'block', md: 'none' },
+          display: { xs: 'block', lg: 'none' },
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
-            // Responsive width for all mobile sizes
+            // Responsive width for all mobile sizes including 320px
             width: {
-              xs: 'calc(100vw - 40px)', // 300px-435px: 85-90% of viewport with padding
-              sm: 280, // 600px+: fixed width
+              xs: 'calc(100vw - 20px)', // 320px: 93% of viewport
+              sm: 'calc(100vw - 40px)', // 600px+: 90% of viewport
+              md: 320
             },
             maxWidth: {
-              xs: '90vw',
-              sm: 320
+              xs: '95vw',
+              sm: '90vw',
+              md: 360
             },
             minWidth: {
-              xs: 240, // Minimum for very small screens (300px)
-              sm: 260
+              xs: 280, // Minimum for 320px screens
+              sm: 300,
+              md: 320
             },
             // Smooth slide animation
-            transition: 'width 0.3s ease-in-out',
+            transition: 'width 0.2s ease-in-out',
           },
         }}
       >

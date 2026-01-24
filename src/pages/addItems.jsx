@@ -36,7 +36,6 @@ const AddItems = () => {
     formType: '', // Only if productType is Form
     formVariant: '', // Only if productType is Form
     formBikeName: '', // Only if productType is Form (bike for form variant)
-    company: '',
     price: '',
     basePrice: '',
     quantity: '',
@@ -187,22 +186,40 @@ const AddItems = () => {
         }
       }
 
+      // Parse numeric values safely, defaulting to 0 if invalid
+      const priceValue = parseFloat(formData.price) || 0;
+      const basePriceValue = parseFloat(formData.basePrice) || priceValue || 0;
+      const quantityValue = parseInt(formData.quantity) || 0;
+
+      // Validate that price is provided and valid
+      if (!formData.price || isNaN(priceValue) || priceValue < 0) {
+        showNotification('error', 'Please enter a valid selling price');
+        return;
+      }
+
+      // Build item data - only include relevant fields based on productType
       const itemData = {
         productType: formData.productType,
-        coverType: formData.productType === 'Cover' ? formData.coverType : '',
-        plateCompany: formData.productType === 'Plate' ? formData.plateCompany : '',
-        bikeName: formData.productType === 'Plate' ? formData.bikeName : (formData.productType === 'Form' ? formData.formBikeName : ''),
-        plateType: formData.productType === 'Plate' ? formData.plateType : '',
-        formCompany: formData.productType === 'Form' ? formData.formCompany : '',
-        formType: formData.productType === 'Form' ? formData.formType : '',
-        formVariant: formData.productType === 'Form' ? formData.formVariant : '',
-        company: formData.company.trim(),
-        price: parseFloat(formData.price),
-        basePrice: parseFloat(formData.basePrice || formData.price),
-        quantity: parseInt(formData.quantity),
-        description: formData.description.trim(),
-        supplier: formData.supplier.trim()
+        price: priceValue,
+        basePrice: basePriceValue,
+        quantity: quantityValue,
+        description: formData.description.trim() || '',
+        supplier: formData.supplier.trim() || ''
       };
+
+      // Only add productType-specific fields
+      if (formData.productType === 'Cover') {
+        itemData.coverType = formData.coverType;
+      } else if (formData.productType === 'Plate') {
+        itemData.plateCompany = formData.plateCompany;
+        itemData.bikeName = formData.bikeName;
+        itemData.plateType = formData.plateType;
+      } else if (formData.productType === 'Form') {
+        itemData.formCompany = formData.formCompany;
+        itemData.formType = formData.formType;
+        itemData.formVariant = formData.formVariant;
+        itemData.bikeName = formData.formBikeName;
+      }
 
       console.log('Sending item data:', itemData);
       console.log('API endpoint:', axiosApi.defaults.baseURL + '/items');
@@ -224,7 +241,6 @@ const AddItems = () => {
           formType: '',
           formVariant: '',
           formBikeName: '',
-          company: '',
           price: '',
           basePrice: '',
           quantity: '',
@@ -237,6 +253,7 @@ const AddItems = () => {
     } catch (error) {
       console.error('Detailed error:', error);
       console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
       console.error('Error message:', error.message);
       
       let errorMessage = 'Failed to add item. Please try again.';
@@ -244,7 +261,11 @@ const AddItems = () => {
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
         errorMessage = 'Cannot connect to server. Please make sure your backend server is running.';
       } else if (error.response) {
-        errorMessage = `Server error: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
+        // Show the actual error message from backend
+        const backendError = error.response.data?.error || error.response.data?.message || error.response.statusText;
+        errorMessage = `Server error: ${error.response.status} - ${backendError}`;
+        console.error('Backend error message:', backendError);
+        console.error('Full error data:', JSON.stringify(error.response.data, null, 2));
       } else if (error.message) {
         errorMessage = `Error: ${error.message}`;
       }
@@ -541,29 +562,12 @@ const AddItems = () => {
               </>
             )}
 
-            {/* Company */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Company/Manufacturer"
-                name="company"
-                value={formData.company}
-                onChange={handleInputChange}
-                placeholder="e.g., Honda, Toyota, Yamaha"
-                size={isMobile ? 'small' : 'medium'}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-                  }
-                }}
-              />
-            </Grid>
 
             {/* Base Price */}
             <Grid item xs={12} sm={6}>
               <Tooltip title="Base price for this product. This is the default price before any discounts." arrow placement="top">
-                <TextField
-                  fullWidth
+              <TextField
+                fullWidth
                   label="Base Price (Rs) *"
                   name="basePrice"
                   type="number"
@@ -576,7 +580,7 @@ const AddItems = () => {
                       price: prev.price || value // Auto-fill price if empty
                     }));
                   }}
-                  required
+                required
                   inputProps={{ min: 0, step: "0.01" }}
                   placeholder="0.00"
                   size={isMobile ? 'small' : 'medium'}
@@ -592,8 +596,8 @@ const AddItems = () => {
             {/* Selling Price */}
             <Grid item xs={12} sm={6}>
               <Tooltip title="Current selling price. Defaults to base price but can be adjusted." arrow placement="top">
-                <TextField
-                  fullWidth
+              <TextField
+                fullWidth
                   label="Selling Price (Rs) *"
                 name="price"
                 type="number"

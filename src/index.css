@@ -9,7 +9,9 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
+svg.MuiSvgIcon-root.MuiSvgIcon-fontSizeMedium.css-omigbx-MuiSvgIcon-root {
+  fill: #000 !important;
+}
 body {
   font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
   margin: 0;

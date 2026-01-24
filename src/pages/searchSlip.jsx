@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Search, Refresh, Edit, Visibility, Cancel,
-  Clear, LocalOffer, Save, Delete, Add // ✅ Added Add icon import
+  Clear, LocalOffer, Save, Delete, Add
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { axiosApi } from '../utils/api';
@@ -26,6 +26,7 @@ const SearchSlip = () => {
   const [selectedSlip, setSelectedSlip] = useState(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [editForm, setEditForm] = useState({
@@ -43,10 +44,10 @@ const SearchSlip = () => {
 
   // Update search results when search term or allSlips changes
   useEffect(() => {
-    if (!searchTerm.trim()) {
+      if (!searchTerm.trim()) {
       setSearchResults(allSlips);
-      return;
-    }
+        return;
+      }
 
     const term = searchTerm.toLowerCase().trim();
     const filteredSlips = allSlips.filter(slip => {
@@ -59,7 +60,7 @@ const SearchSlip = () => {
       
       // Search in product names
       if (slip.products?.some(p => 
-        p.productName?.toLowerCase().includes(term)
+          p.productName?.toLowerCase().includes(term)
       )) return true;
       
       // Search in customer phone
@@ -68,11 +69,11 @@ const SearchSlip = () => {
       return false;
     });
 
-    setSearchResults(filteredSlips);
-    
+      setSearchResults(filteredSlips);
+      
     if (filteredSlips.length === 0 && allSlips.length > 0) {
-      showNotification('info', 'No slips found matching your search.');
-    }
+        showNotification('info', 'No slips found matching your search.');
+      }
   }, [searchTerm, allSlips]);
 
   // Fetch all slips with optional date range filter
@@ -321,10 +322,10 @@ const SearchSlip = () => {
         showNotification('success', 
           `Slip cancelled successfully! ${details.inventoryItemsRestored || 0} item(s) restored to inventory. ${details.incomeRecordsUpdated || 0} income record(s) updated.`
         );
-        setOpenCancelDialog(false);
+      setOpenCancelDialog(false);
         setSelectedSlip(null);
         // Refresh all slips
-        await fetchAllSlips();
+      await fetchAllSlips();
       }
       
     } catch (error) {
@@ -618,17 +619,30 @@ const SearchSlip = () => {
                       </IconButton>
                       
                       {slip.status !== 'Cancelled' && (
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => {
-                            setSelectedSlip(slip);
-                            setOpenCancelDialog(true);
-                          }}
-                          title="Cancel Slip"
-                        >
-                          <Cancel />
-                        </IconButton>
+                        <>
+                          <IconButton
+                            size="small"
+                            color="warning"
+                            onClick={() => {
+                              setSelectedSlip(slip);
+                              setOpenCancelDialog(true);
+                            }}
+                            title="Cancel Slip"
+                          >
+                            <Cancel />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              setSelectedSlip(slip);
+                              setOpenDeleteDialog(true);
+                            }}
+                            title="Delete Slip"
+                          >
+                            <Delete />
+                          </IconButton>
+                        </>
                       )}
                     </Stack>
                   </TableCell>
@@ -880,12 +894,12 @@ const SearchSlip = () => {
             </Alert>
           ) : (
             <>
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                This action cannot be undone!
-              </Alert>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                Are you sure you want to cancel this slip? This will:
-              </Typography>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This action cannot be undone!
+          </Alert>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to cancel this slip? This will:
+          </Typography>
               <Box component="ul" sx={{ pl: 2, mb: 2 }}>
                 <li>Mark the slip as <strong>"Cancelled"</strong> (status change)</li>
                 <li>Return all products to inventory stock</li>
@@ -901,7 +915,7 @@ const SearchSlip = () => {
               }}>
                 <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
                   Slip Details:
-                </Typography>
+          </Typography>
                 <Typography variant="body2">
                   <strong>Slip #:</strong> {selectedSlip?.slipNumber || selectedSlip?._id}
                 </Typography>
@@ -931,6 +945,84 @@ const SearchSlip = () => {
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} /> : 'Cancel Slip'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Slip Dialog */}
+      <Dialog 
+        open={openDeleteDialog} 
+        onClose={() => setOpenDeleteDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Delete Slip - {selectedSlip?.slipNumber}
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            This action cannot be undone!
+          </Alert>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to permanently delete this slip? This will:
+          </Typography>
+          <Box component="ul" sx={{ pl: 2, mb: 2 }}>
+            <li>Permanently delete the slip record</li>
+            <li>Return all products to inventory stock</li>
+            <li>Remove the sale amount from income records</li>
+            <li>Update all related records</li>
+          </Box>
+          <Box sx={{ 
+            p: 2, 
+            bgcolor: 'rgba(211, 47, 47, 0.1)', 
+            borderRadius: 1,
+            mb: 2 
+          }}>
+            <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
+              Slip Details:
+            </Typography>
+            <Typography variant="body2">
+              <strong>Slip #:</strong> {selectedSlip?.slipNumber || selectedSlip?._id}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Customer:</strong> {selectedSlip?.customerName || 'Walk-in Customer'}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Total Amount:</strong> Rs {selectedSlip?.totalAmount?.toLocaleString()}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Products:</strong> {selectedSlip?.products?.length || 0} item(s)
+            </Typography>
+            <Typography variant="body2">
+              <strong>Total Quantity:</strong> {selectedSlip?.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0} units
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
+          <Button 
+            variant="contained"
+            color="error"
+            startIcon={<Delete />}
+            onClick={async () => {
+              try {
+                setLoading(true);
+                await axiosApi.slips.delete(selectedSlip._id);
+                showNotification('success', 'Slip deleted successfully! Products restored to inventory and income updated.');
+                setOpenDeleteDialog(false);
+                setSelectedSlip(null);
+                await fetchAllSlips();
+              } catch (error) {
+                console.error('Delete error:', error);
+                const errorMsg = error.response?.data?.error || error.message || 'Failed to delete slip';
+                showNotification('error', errorMsg);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : 'Delete Permanently'}
           </Button>
         </DialogActions>
       </Dialog>

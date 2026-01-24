@@ -1,7 +1,10 @@
 import axios from 'axios';
 
-// Backend API Base URL - Vercel serverless function
-const API_BASE_URL = 'https://inventory-system-backend-ten.vercel.app/api';
+// Backend API Base URL - Auto-detect localhost or production
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE_URL = isLocalhost 
+  ? 'http://localhost:5000/api'  // Local development
+  : 'https://inventory-system-backend-ten.vercel.app/api';  // Production
 
 export const axiosApi = axios.create({
   baseURL: API_BASE_URL,

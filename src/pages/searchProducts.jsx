@@ -6,15 +6,13 @@ import {
   FormControl, InputLabel, Select, MenuItem, Button
 } from '@mui/material';
 import {
-  Search, Refresh, Clear, Inventory2, Warning,
+  Search, Refresh, Clear, Inventory2,
   TrendingUp, Inventory as InventoryIcon, ArrowUpward, ArrowDownward
 } from '@mui/icons-material';
 import { axiosApi } from '../utils/api';
 import { useNotification } from '../utils/notifications';
-import HelpTooltip from '../components/HelpTooltip';
-import GettingStarted from '../components/GettingStarted';
 
-export default function Inventory() {
+export default function SearchProducts() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,7 +91,6 @@ export default function Inventory() {
     outOfStock: filteredItems.filter(item => item.quantity === 0).length
   };
 
-
   // Get stock status color
   const getStockColor = (quantity) => {
     if (quantity === 0) return 'error';
@@ -112,7 +109,7 @@ export default function Inventory() {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading inventory...</Typography>
+        <Typography sx={{ ml: 2 }}>Loading products...</Typography>
       </Box>
     );
   }
@@ -121,10 +118,12 @@ export default function Inventory() {
     <Box sx={{ 
       maxWidth: 1400, 
       mx: 'auto', 
-      mt: { xs: 1, sm: 2 }, 
-      p: { xs: 1.5, sm: 2, md: 3 },
+      mt: { xs: 0.5, sm: 1, md: 2 }, 
+      p: { xs: 1, sm: 1.5, md: 2, lg: 3 },
       minHeight: '100vh',
-      background: 'linear-gradient(to bottom, #f5f7fa 0%, #ffffff 100%)'
+      background: 'linear-gradient(to bottom, #f5f7fa 0%, #ffffff 100%)',
+      width: '100%',
+      boxSizing: 'border-box'
     }}>
       {/* Header */}
       <Box sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
@@ -138,20 +137,13 @@ export default function Inventory() {
             fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
             fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
           }}>
-            Inventory Management
+            Search Products
           </Typography>
-          <HelpTooltip 
-            title="Inventory Management Help"
-            content="View your inventory items and stock levels. Stock is automatically updated when slips are created, edited, or deleted."
-          />
         </Box>
         <Typography variant="subtitle1" color="textSecondary">
-          View inventory items and stock levels. Stock updates automatically with slip operations.
+          Search and view product information. This is a read-only view.
         </Typography>
       </Box>
-
-      {/* Getting Started */}
-      <GettingStarted />
 
       {/* Statistics Cards */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
@@ -221,7 +213,7 @@ export default function Inventory() {
           <Grid item xs={12} sm={12} md={4}>
             <TextField
               fullWidth
-              label="Search Items"
+              label="Search Products"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && fetchItems()}
@@ -252,12 +244,11 @@ export default function Inventory() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={6} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={2}>
             <Button
               fullWidth
               variant={lowStockFilter ? 'contained' : 'outlined'}
               onClick={() => setLowStockFilter(!lowStockFilter)}
-              startIcon={<Warning sx={{ fontSize: { xs: '16px', sm: '18px' } }} />}
               size="small"
               sx={{ 
                 fontSize: { xs: '0.75rem', sm: '0.875rem' },
@@ -312,7 +303,6 @@ export default function Inventory() {
         </Grid>
       </Paper>
 
-
       {/* Items Table */}
       <Paper elevation={0} sx={{ 
         borderRadius: 3,
@@ -330,12 +320,12 @@ export default function Inventory() {
                   fontSize: { xs: '0.75rem', sm: '0.85rem', md: '0.95rem' }
                 }
               }}>
-                <TableCell>Item Name</TableCell>
-                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>SKU</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Stock</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' }, px: { xs: 0.5, sm: 1 } }}>Item Name</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, fontSize: { xs: '0.7rem', sm: '0.875rem' }, px: { xs: 0.5, sm: 1 } }}>SKU</TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' }, px: { xs: 0.5, sm: 1 } }}>Category</TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' }, px: { xs: 0.5, sm: 1 } }}>Price</TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' }, px: { xs: 0.5, sm: 1 } }}>Stock</TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' }, px: { xs: 0.5, sm: 1 } }}>Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -350,37 +340,38 @@ export default function Inventory() {
                     transition: 'all 0.2s ease-in-out'
                   }}
                 >
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
+                  <TableCell sx={{ px: { xs: 0.5, sm: 1 }, py: { xs: 0.75, sm: 1 } }}>
+                    <Typography variant="body2" fontWeight="medium" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                       {item.name}
                     </Typography>
                     {item.sku && (
-                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', md: 'none' } }}>
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', md: 'none' }, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                         SKU: {item.sku}
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                    <Typography variant="body2">{item.sku || 'N/A'}</Typography>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, px: { xs: 0.5, sm: 1 }, py: { xs: 0.75, sm: 1 } }}>
+                    <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{item.sku || 'N/A'}</Typography>
                   </TableCell>
-                  <TableCell>
-                    <Chip label={item.category || 'General'} size="small" variant="outlined" />
+                  <TableCell sx={{ px: { xs: 0.5, sm: 1 }, py: { xs: 0.75, sm: 1 } }}>
+                    <Chip label={item.category || 'General'} size="small" variant="outlined" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: '20px', sm: '24px' } }} />
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="bold" color="success.main">
+                  <TableCell sx={{ px: { xs: 0.5, sm: 1 }, py: { xs: 0.75, sm: 1 } }}>
+                    <Typography variant="body2" fontWeight="bold" color="success.main" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                       Rs {item.price?.toLocaleString()}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="bold">
+                  <TableCell sx={{ px: { xs: 0.5, sm: 1 }, py: { xs: 0.75, sm: 1 } }}>
+                    <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                       {item.quantity}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ px: { xs: 0.5, sm: 1 }, py: { xs: 0.75, sm: 1 } }}>
                     <Chip
                       label={getStockStatus(item.quantity)}
                       color={getStockColor(item.quantity)}
                       size="small"
+                      sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: '20px', sm: '24px' } }}
                     />
                   </TableCell>
                 </TableRow>
@@ -396,12 +387,11 @@ export default function Inventory() {
               No items found
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-              {searchTerm ? 'Try a different search term' : 'Add items to get started'}
+              {searchTerm ? 'Try a different search term' : 'No products available'}
             </Typography>
           </Box>
         )}
       </Paper>
-
 
       {/* Notification */}
       {notification.open && (
@@ -416,3 +406,4 @@ export default function Inventory() {
     </Box>
   );
 }
+
