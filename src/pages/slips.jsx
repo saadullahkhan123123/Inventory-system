@@ -178,6 +178,40 @@ const Slips = () => {
     };
   };
 
+  // Check if two items are the same product (for merging)
+  const isSameProduct = (item1, item2) => {
+    if (!item1 || !item2) return false;
+    
+    // Must have same product type
+    if (item1.productType !== item2.productType) return false;
+    
+    // For Cover products
+    if (item1.productType === 'Cover') {
+      return item1.coverType === item2.coverType;
+    }
+    
+    // For Plate products
+    if (item1.productType === 'Plate') {
+      return (
+        item1.bikeName === item2.bikeName &&
+        item1.plateCompany === item2.plateCompany &&
+        item1.plateType === item2.plateType
+      );
+    }
+    
+    // For Form products
+    if (item1.productType === 'Form') {
+      return (
+        item1.formCompany === item2.formCompany &&
+        item1.formType === item2.formType &&
+        item1.formVariant === item2.formVariant &&
+        item1.formBikeName === item2.formBikeName
+      );
+    }
+    
+    return false;
+  };
+
   // Find product from inventory based on item attributes
   const findProductFromInventory = (item) => {
     if (!products || products.length === 0) return null;
@@ -272,6 +306,64 @@ const Slips = () => {
     });
     
     return matchingProduct || null;
+  };
+
+  // Merge duplicate products in items array
+  const mergeDuplicateProducts = (items) => {
+    const merged = [];
+    const processed = new Set();
+    
+    items.forEach((item, index) => {
+      // Skip if already processed
+      if (processed.has(index)) return;
+      
+      // Find all items with same product attributes
+      const duplicates = [index];
+      for (let i = index + 1; i < items.length; i++) {
+        if (!processed.has(i) && isSameProduct(item, items[i])) {
+          duplicates.push(i);
+        }
+      }
+      
+      // If only one item, add as is
+      if (duplicates.length === 1) {
+        merged.push({ ...item });
+        processed.add(index);
+        return;
+      }
+      
+      // Merge duplicates
+      const baseItem = { ...item };
+      let totalQuantity = item.quantity || 0;
+      let latestPrice = item.price || item.basePrice || 0;
+      let latestBasePrice = item.basePrice || 0;
+      
+      // Sum quantities and get latest price (use the last one's price if different)
+      duplicates.forEach(dupIndex => {
+        const dupItem = items[dupIndex];
+        totalQuantity += (dupItem.quantity || 0);
+        // Use the latest price (from last duplicate) if prices are different
+        if (dupItem.price || dupItem.basePrice) {
+          const dupPrice = dupItem.price || dupItem.basePrice || 0;
+          if (dupPrice !== latestPrice) {
+            latestPrice = dupPrice;
+            latestBasePrice = dupItem.basePrice || 0;
+          }
+        }
+        processed.add(dupIndex);
+      });
+      
+      // Update base item with merged data
+      baseItem.quantity = totalQuantity;
+      baseItem.price = latestPrice;
+      baseItem.basePrice = latestBasePrice;
+      
+      // Recalculate pricing
+      const pricing = calculateItemPricing(baseItem);
+      merged.push({ ...baseItem, ...pricing });
+    });
+    
+    return merged;
   };
 
   const handleItemChange = (index, field, value) => {
@@ -442,6 +534,11 @@ const Slips = () => {
       // Recalculate pricing (bulk discount may apply)
       const pricing = calculateItemPricing({ ...updatedItems[index], quantity: qty });
       updatedItems[index] = { ...updatedItems[index], ...pricing };
+      
+      // Check and merge duplicates after quantity change
+      const merged = mergeDuplicateProducts(updatedItems);
+      setFormData(prev => ({ ...prev, items: merged }));
+      return;
     } else if (field === 'price') {
       // Manual price override
       const manualPrice = parseFloat(value) || 0;
@@ -451,9 +548,40 @@ const Slips = () => {
       // Recalculate with manual price
       const pricing = calculateItemPricing({ ...updatedItems[index], price: manualPrice });
       updatedItems[index] = { ...updatedItems[index], ...pricing, price: manualPrice };
+      
+      // Check and merge duplicates after price change
+      const merged = mergeDuplicateProducts(updatedItems);
+      setFormData(prev => ({ ...prev, items: merged }));
+      return;
     }
 
-    setFormData(prev => ({ ...prev, items: updatedItems }));
+    // After any field change, check if we should merge duplicates
+    // Only merge if the item is complete (has all required fields)
+    const currentItem = updatedItems[index];
+    let shouldMerge = false;
+    
+    if (currentItem.productType === 'Cover' && currentItem.coverType && currentItem.quantity > 0) {
+      shouldMerge = true;
+    } else if (currentItem.productType === 'Plate' && currentItem.bikeName && currentItem.plateType && currentItem.quantity > 0) {
+      shouldMerge = true;
+    } else if (currentItem.productType === 'Form' && currentItem.formCompany && currentItem.formType && currentItem.formVariant && currentItem.quantity > 0) {
+      shouldMerge = true;
+    }
+    
+    if (shouldMerge) {
+      const beforeCount = updatedItems.length;
+      const merged = mergeDuplicateProducts(updatedItems, true);
+      const afterCount = merged.length;
+      
+      // Only show notification if items were actually merged
+      if (beforeCount > afterCount) {
+        showNotification('info', `Same products merged. Quantities added together.`);
+      }
+      
+      setFormData(prev => ({ ...prev, items: merged }));
+    } else {
+      setFormData(prev => ({ ...prev, items: updatedItems }));
+    }
   };
 
   const addItem = () => {

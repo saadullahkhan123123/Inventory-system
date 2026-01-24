@@ -351,8 +351,8 @@ function SlipPage() {
           </div>
           
           <div class="footer">
-            <div>Software desgin by Saad </div>
-            <div><strong>03146074093</strong></div>
+            <div>Software Developed by SAAD  </div>
+            <div><strong> Contact: WhatsApp 03146074093</strong></div>
           </div>
           
           <script>

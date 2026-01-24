@@ -22,7 +22,7 @@ import {
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text>Saeed Auto</Text>
-          <Text>Contact: +92 300 1234567</Text>
+          <Text>Contact: 0312258725</Text>
         </View>
   
         {/* Customer Info */}
