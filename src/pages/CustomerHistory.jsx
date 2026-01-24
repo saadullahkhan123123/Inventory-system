@@ -191,7 +191,7 @@ const CustomerHistory = () => {
               <Card sx={{ borderRadius: 2, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
                 <CardContent>
                   <Typography variant="body2" color="white" sx={{ opacity: 0.9, mb: 1 }}>
-                    Customer Name
+                    Customer Name :
                   </Typography>
                   <Typography variant="h5" fontWeight="bold" color="white">
                     {historyData.customerName}
