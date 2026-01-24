@@ -39,8 +39,7 @@ const AddItems = () => {
     price: '',
     basePrice: '',
     quantity: '',
-    description: '',
-    supplier: ''
+    description: ''
   });
 
   // Cover types list
@@ -203,8 +202,7 @@ const AddItems = () => {
         price: priceValue,
         basePrice: basePriceValue,
         quantity: quantityValue,
-        description: formData.description.trim() || '',
-        supplier: formData.supplier.trim() || ''
+        description: formData.description.trim() || ''
       };
 
       // Only add productType-specific fields
@@ -244,8 +242,7 @@ const AddItems = () => {
           price: '',
           basePrice: '',
           quantity: '',
-          description: '',
-          supplier: ''
+          description: ''
         });
       } else {
         showNotification('error', 'No data returned from server');
@@ -639,7 +636,7 @@ const AddItems = () => {
             </Grid>
 
             {/* Description - Optional */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Description (Optional)"
@@ -649,24 +646,6 @@ const AddItems = () => {
                 multiline
                 rows={2}
                 placeholder="Add any additional notes or description"
-                size={isMobile ? 'small' : 'medium'}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-                  }
-                }}
-              />
-            </Grid>
-
-            {/* Supplier - Optional */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Supplier (Optional)"
-                name="supplier"
-                value={formData.supplier}
-                onChange={handleInputChange}
-                placeholder="Enter supplier name"
                 size={isMobile ? 'small' : 'medium'}
                 sx={{
                   '& .MuiInputBase-input': {

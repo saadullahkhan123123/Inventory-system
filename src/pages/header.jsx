@@ -1,10 +1,8 @@
 import * as React from 'react';
-import { Tabs, Tab, Paper, Box, AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText, useScrollTrigger, Slide, Chip } from '@mui/material';
+import { Tabs, Tab, Paper, Box, AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText, useScrollTrigger, Slide } from '@mui/material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import saeedLogo from '../assets/ChatGPT Image Aug 6, 2025, 02_36_45 AM.png';
 
 // Hide on scroll component
@@ -22,46 +20,6 @@ function Header() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
-  const [pakistanDate, setPakistanDate] = React.useState({
-    date: '',
-    day: '',
-    time: ''
-  });
-
-  // Get Pakistan (Karachi) timezone date and day
-  React.useEffect(() => {
-    const updatePakistanTime = () => {
-      const now = new Date();
-      const pakistanTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
-      
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const day = days[pakistanTime.getDay()];
-      
-      const dateStr = pakistanTime.toLocaleDateString('en-PK', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      const timeStr = pakistanTime.toLocaleTimeString('en-PK', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      });
-      
-      setPakistanDate({
-        date: dateStr,
-        day: day,
-        time: timeStr
-      });
-    };
-
-    updatePakistanTime();
-    const interval = setInterval(updatePakistanTime, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Handle scroll for shadow
   React.useEffect(() => {
@@ -154,41 +112,6 @@ function Header() {
         >
           <CloseIcon sx={{ fontSize: { xs: '20px', sm: '24px' } }} />
         </IconButton>
-      </Box>
-      
-      {/* Date & Day in Mobile Drawer - Responsive */}
-      <Box sx={{ px: { xs: 1, sm: 2 }, mb: 2 }}>
-        <Chip
-          icon={<CalendarTodayIcon sx={{ fontSize: { xs: '16px', sm: '18px' } }} />}
-          label={pakistanDate.date}
-          size="small"
-          sx={{
-            mb: 1,
-            width: '100%',
-            justifyContent: 'flex-start',
-            bgcolor: 'rgba(25, 118, 210, 0.1)',
-            color: 'primary.main',
-            fontWeight: 'bold',
-            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-            fontSize: { xs: '0.65rem', sm: '0.7rem' },
-            height: { xs: '28px', sm: '32px' }
-          }}
-        />
-        <Chip
-          icon={<AccessTimeIcon sx={{ fontSize: { xs: '16px', sm: '18px' } }} />}
-          label={`${pakistanDate.day} - ${pakistanDate.time}`}
-          size="small"
-          sx={{
-            width: '100%',
-            justifyContent: 'flex-start',
-            bgcolor: 'rgba(220, 38, 38, 0.1)',
-            color: '#dc2626',
-            fontWeight: 'bold',
-            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-            fontSize: { xs: '0.65rem', sm: '0.7rem' },
-            height: { xs: '28px', sm: '32px' }
-          }}
-        />
       </Box>
       
       <List sx={{ px: { xs: 0.5, sm: 1 } }}>
@@ -324,54 +247,6 @@ function Header() {
               </Box>
             </Box>
 
-            {/* Date & Day Display - Desktop/Tablet (hidden on mobile) */}
-            <Box sx={{ 
-              display: { xs: 'none', lg: 'flex' },
-              alignItems: 'center',
-              gap: { lg: 0.75, xl: 1 },
-              mr: { lg: 1.5, xl: 2 },
-              flexShrink: 0,
-              flexWrap: 'wrap'
-            }}>
-              <Chip
-                icon={<CalendarTodayIcon sx={{ fontSize: '16px !important' }} />}
-                label={pakistanDate.date}
-                size="small"
-                sx={{
-                  bgcolor: 'rgba(25, 118, 210, 0.1)',
-                  color: 'primary.main',
-                  fontWeight: 'bold',
-                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                  fontSize: { lg: '0.7rem', xl: '0.75rem' },
-                  height: { lg: '28px', xl: '32px' },
-                  maxWidth: { lg: '180px', xl: '220px' },
-                  '& .MuiChip-label': {
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }
-                }}
-              />
-              <Chip
-                icon={<AccessTimeIcon sx={{ fontSize: '16px !important' }} />}
-                label={`${pakistanDate.day} - ${pakistanDate.time}`}
-                size="small"
-                sx={{
-                  bgcolor: 'rgba(220, 38, 38, 0.1)',
-                  color: '#dc2626',
-                  fontWeight: 'bold',
-                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                  fontSize: { lg: '0.7rem', xl: '0.75rem' },
-                  height: { lg: '28px', xl: '32px' },
-                  maxWidth: { lg: '200px', xl: '240px' },
-                  '& .MuiChip-label': {
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }
-                }}
-              />
-            </Box>
 
             {/* Navigation - Desktop/Tablet (hidden on mobile - always use hamburger on mobile) */}
             <Box sx={{ 
@@ -422,19 +297,25 @@ function Header() {
 
             {/* Mobile menu button - Always show on screens below lg (1200px) */}
             <IconButton
-              color="inherit"
+              color="primary"
               edge="end"
               onClick={handleDrawerToggle}
               aria-label="open drawer"
               sx={{ 
                 display: { xs: 'flex', lg: 'none' },
                 ml: 'auto',
-                minWidth: { xs: '36px', sm: '40px' },
-                minHeight: { xs: '36px', sm: '40px' },
-                p: { xs: 0.75, sm: 1 }
+                minWidth: { xs: '44px', sm: '48px' },
+                minHeight: { xs: '44px', sm: '48px' },
+                p: { xs: 1, sm: 1.25 },
+                '&:hover': {
+                  backgroundColor: 'rgba(25, 118, 210, 0.08)'
+                }
               }}
             >
-              <MenuIcon sx={{ fontSize: { xs: '20px', sm: '24px', md: '28px' } }} />
+              <MenuIcon sx={{ 
+                fontSize: { xs: '28px', sm: '32px', md: '36px' },
+                color: 'primary.main'
+              }} />
             </IconButton>
           </Toolbar>
         </AppBar>

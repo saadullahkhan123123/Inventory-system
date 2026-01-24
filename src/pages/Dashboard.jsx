@@ -36,7 +36,8 @@ function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [dashboardRes, trendsRes, topProductsRes, inventoryRes, statusRes] = await Promise.all([
+      // Fetch all data with individual error handling
+      const [dashboardRes, trendsRes, topProductsRes, inventoryRes, statusRes] = await Promise.allSettled([
         axiosApi.analytics.getDashboard(),
         axiosApi.analytics.getSalesTrends({ period: timeRange }),
         axiosApi.analytics.getTopProducts({ limit: 10, period: timeRange }),
@@ -44,11 +45,49 @@ function Dashboard() {
         axiosApi.analytics.getOrdersByStatus()
       ]);
 
-      setDashboardData(dashboardRes.data);
-      setSalesTrends(trendsRes.data.salesTrends || []);
-      setTopProducts(topProductsRes.data.topProducts || []);
-      setInventoryLevels(inventoryRes.data);
-      setOrdersByStatus(statusRes.data.ordersByStatus || []);
+      // Handle dashboard data
+      if (dashboardRes.status === 'fulfilled') {
+        setDashboardData(dashboardRes.value.data);
+      } else {
+        console.error('Error fetching dashboard:', dashboardRes.reason);
+        setDashboardData(null);
+      }
+
+      // Handle sales trends
+      if (trendsRes.status === 'fulfilled') {
+        setSalesTrends(trendsRes.value.data.salesTrends || []);
+      } else {
+        console.error('Error fetching sales trends:', trendsRes.reason);
+        setSalesTrends([]);
+      }
+
+      // Handle top products
+      if (topProductsRes.status === 'fulfilled') {
+        setTopProducts(topProductsRes.value.data.topProducts || []);
+      } else {
+        console.error('Error fetching top products:', topProductsRes.reason);
+        setTopProducts([]);
+      }
+
+      // Handle inventory levels
+      if (inventoryRes.status === 'fulfilled') {
+        setInventoryLevels(inventoryRes.value.data);
+      } else {
+        console.error('Error fetching inventory levels:', inventoryRes.reason);
+        setInventoryLevels(null);
+      }
+
+      // Handle orders by status
+      if (statusRes.status === 'fulfilled') {
+        setOrdersByStatus(statusRes.value.data.ordersByStatus || []);
+      } else {
+        console.error('Error fetching orders by status:', statusRes.reason);
+        setOrdersByStatus([]);
+        // Only show notification for critical errors
+        if (statusRes.reason?.response?.status !== 503) {
+          showNotification('warning', 'Some dashboard data could not be loaded. Please refresh.');
+        }
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Failed to load dashboard data';
