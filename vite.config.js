@@ -18,9 +18,15 @@ export default defineConfig({
     minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'mui-vendor': ['@mui/material', '@mui/icons-material'],
+          'recharts-vendor': ['recharts'],
+        },
       },
     },
+    chunkSizeWarningLimit: 1000,
+    sourcemap: false, // Disable sourcemaps for production for better performance
   },
   define: {
     'process.env': {},

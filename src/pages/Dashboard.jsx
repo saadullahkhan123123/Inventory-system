@@ -1,19 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box, Paper, Typography, Grid, Card, CardContent, FormControl, InputLabel, Select, MenuItem,
-  CircularProgress, Alert, Button, Tooltip, IconButton
+  CircularProgress, Alert, Button, Tooltip, IconButton, Chip, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Badge, List, ListItem, ListItemText, Divider
 } from '@mui/material';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, Legend, ResponsiveContainer
+  Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
-import { Download, Refresh, HelpOutline } from '@mui/icons-material';
+import { 
+  Download, Refresh, HelpOutline, TrendingUp, People, Inventory2, 
+  Warning, Receipt, AttachMoney, Notifications, PendingActions, Timeline
+} from '@mui/icons-material';
 import { axiosApi } from '../utils/api';
 import { useNotification } from '../utils/notifications';
+import { useNavigate } from 'react-router-dom';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
 
 function Dashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('week');
   const [dashboardData, setDashboardData] = useState(null);
@@ -147,65 +153,207 @@ function Dashboard() {
         </Box>
       </Box>
 
-      {/* Summary Cards */}
+      {/* Enhanced Summary Cards - 10+ Features */}
       {dashboardData?.summary && (
-        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
-          <Grid item xs={6} sm={6} md={3}>
+        <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: 4 }}>
+          {/* Total Revenue */}
+          <Grid item xs={6} sm={4} md={2.4}>
             <Card sx={{ 
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               borderRadius: 3,
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
-            }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ mb: 1, opacity: 0.9 }}>Total Revenue</Typography>
-                <Typography variant="h4" fontWeight="bold">
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              height: '100%',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' }
+            }} onClick={() => navigate('/income')}>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <AttachMoney sx={{ fontSize: { xs: '20px', sm: '24px' }, mr: 1 }} />
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Total Revenue</Typography>
+                </Box>
+                <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' } }}>
                   Rs {dashboardData.summary.totalRevenue?.toLocaleString() || 0}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={6} sm={6} md={3}>
+
+          {/* Today's Revenue */}
+          <Grid item xs={6} sm={4} md={2.4}>
             <Card sx={{ 
               background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
               color: 'white',
               borderRadius: 3,
-              boxShadow: '0 4px 15px rgba(245, 87, 108, 0.3)'
+              boxShadow: '0 4px 15px rgba(245, 87, 108, 0.3)',
+              height: '100%',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' }
             }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ mb: 1, opacity: 0.9 }}>Today's Revenue</Typography>
-                <Typography variant="h4" fontWeight="bold">
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <TrendingUp sx={{ fontSize: { xs: '20px', sm: '24px' }, mr: 1 }} />
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Today</Typography>
+                </Box>
+                <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' } }}>
                   Rs {dashboardData.summary.todayRevenue?.toLocaleString() || 0}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={6} sm={6} md={3}>
+
+          {/* Monthly Revenue */}
+          <Grid item xs={6} sm={4} md={2.4}>
             <Card sx={{ 
               background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
               color: 'white',
               borderRadius: 3,
-              boxShadow: '0 4px 15px rgba(79, 172, 254, 0.3)'
+              boxShadow: '0 4px 15px rgba(79, 172, 254, 0.3)',
+              height: '100%',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' }
             }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ mb: 1, opacity: 0.9 }}>Total Items</Typography>
-                <Typography variant="h4" fontWeight="bold">
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Receipt sx={{ fontSize: { xs: '20px', sm: '24px' }, mr: 1 }} />
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>This Month</Typography>
+                </Box>
+                <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' } }}>
+                  Rs {dashboardData.summary.monthlyRevenue?.toLocaleString() || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Total Customers */}
+          <Grid item xs={6} sm={4} md={2.4}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+              color: 'white',
+              borderRadius: 3,
+              boxShadow: '0 4px 15px rgba(48, 207, 208, 0.3)',
+              height: '100%',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' }
+            }} onClick={() => navigate('/customer-history')}>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <People sx={{ fontSize: { xs: '20px', sm: '24px' }, mr: 1 }} />
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Customers</Typography>
+                </Box>
+                <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' } }}>
+                  {dashboardData.summary.totalCustomers || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Low Stock Alert */}
+          <Grid item xs={6} sm={4} md={2.4}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+              color: 'white',
+              borderRadius: 3,
+              boxShadow: '0 4px 15px rgba(250, 112, 154, 0.3)',
+              height: '100%',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' }
+            }} onClick={() => navigate('/inventory')}>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Badge badgeContent={dashboardData.summary.lowStockItems || 0} color="error">
+                    <Warning sx={{ fontSize: { xs: '20px', sm: '24px' }, mr: 1 }} />
+                  </Badge>
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Low Stock</Typography>
+                </Box>
+                <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' } }}>
+                  {dashboardData.summary.lowStockItems || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Additional Stats Row */}
+      {dashboardData?.summary && (
+        <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: 4 }}>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+              borderRadius: 3,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              height: '100%'
+            }}>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Yearly Revenue</Typography>
+                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                  Rs {dashboardData.summary.yearlyRevenue?.toLocaleString() || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+              borderRadius: 3,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              height: '100%'
+            }}>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Total Items</Typography>
+                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   {dashboardData.summary.totalItems || 0}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={6} sm={6} md={3}>
+          <Grid item xs={6} sm={4} md={2.4}>
             <Card sx={{ 
-              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-              color: 'white',
+              background: 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
               borderRadius: 3,
-              boxShadow: '0 4px 15px rgba(250, 112, 154, 0.3)'
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              height: '100%'
             }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ mb: 1, opacity: 0.9 }}>Low Stock Items</Typography>
-                <Typography variant="h4" fontWeight="bold">
-                  {dashboardData.summary.lowStockItems || 0}
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Total Slips</Typography>
+                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                  {dashboardData.summary.totalSlips || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
+              borderRadius: 3,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              height: '100%'
+            }}>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Out of Stock</Typography>
+                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                  {dashboardData.summary.outOfStockItems || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%)',
+              borderRadius: 3,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              height: '100%'
+            }}>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Pending Orders</Typography>
+                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                  {dashboardData.summary.pendingOrders || 0}
                 </Typography>
               </CardContent>
             </Card>
@@ -221,7 +369,7 @@ function Dashboard() {
             <Typography variant="h6" gutterBottom fontWeight="bold">
               Sales Trends ({timeRange})
             </Typography>
-            <Box sx={{ width: '100%', height: 300, mt: 2 }}>
+            <Box sx={{ width: '100%', height: { xs: 250, sm: 300 }, mt: 2, minHeight: 200 }}>
               <ResponsiveContainer>
                 <LineChart data={salesTrends.map(item => ({
                   date: item._id.date,
@@ -229,8 +377,8 @@ function Dashboard() {
                   transactions: item.totalTransactions
                 }))}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <XAxis dataKey="date" fontSize={12} />
+                  <YAxis fontSize={12} />
                   <RechartsTooltip />
                   <Legend />
                   <Line type="monotone" dataKey="sales" stroke="#1976d2" strokeWidth={2} name="Total Sales (Rs)" />
@@ -247,7 +395,7 @@ function Dashboard() {
             <Typography variant="h6" gutterBottom fontWeight="bold">
               Orders by Status
             </Typography>
-            <Box sx={{ width: '100%', height: 300, mt: 2 }}>
+            <Box sx={{ width: '100%', height: { xs: 250, sm: 300 }, mt: 2, minHeight: 200 }}>
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
@@ -276,21 +424,21 @@ function Dashboard() {
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {/* Top Products */}
         <Grid item xs={12} lg={8}>
-          <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-            <Typography variant="h6" gutterBottom fontWeight="bold">
+          <Paper sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+            <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               Top Selling Products ({timeRange})
             </Typography>
-            <Box sx={{ width: '100%', height: 350, mt: 2 }}>
+            <Box sx={{ width: '100%', height: { xs: 250, sm: 300, md: 350 }, mt: 2, minHeight: 200 }}>
               <ResponsiveContainer>
                 <BarChart data={topProducts.map(item => ({
-                  name: item._id,
+                  name: item._id?.length > 20 ? item._id.substring(0, 20) + '...' : item._id,
                   quantity: item.totalQuantity,
                   revenue: item.totalRevenue
                 }))}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} fontSize={12} />
+                  <YAxis yAxisId="left" fontSize={12} />
+                  <YAxis yAxisId="right" orientation="right" fontSize={12} />
                   <RechartsTooltip />
                   <Legend />
                   <Bar yAxisId="left" dataKey="quantity" fill="#42a5f5" name="Quantity Sold" />
@@ -303,11 +451,11 @@ function Dashboard() {
 
         {/* Inventory Levels */}
         <Grid item xs={12} lg={4}>
-          <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-            <Typography variant="h6" gutterBottom fontWeight="bold">
+          <Paper sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+            <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               Inventory Stock Levels
             </Typography>
-            <Box sx={{ width: '100%', height: 350, mt: 2 }}>
+            <Box sx={{ width: '100%', height: { xs: 250, sm: 300, md: 350 }, mt: 2, minHeight: 200 }}>
               <ResponsiveContainer>
                 <BarChart
                   data={[
@@ -318,13 +466,119 @@ function Dashboard() {
                   layout="vertical"
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" />
+                  <XAxis type="number" fontSize={12} />
+                  <YAxis dataKey="name" type="category" fontSize={12} />
                   <RechartsTooltip />
                   <Bar dataKey="value" fill="#00C49F" />
                 </BarChart>
               </ResponsiveContainer>
             </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Recent Transactions & Activity Logs */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        {/* Recent Transactions */}
+        <Grid item xs={12} lg={8}>
+          <Paper sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                Recent Transactions
+              </Typography>
+              <Button size="small" onClick={() => navigate('/search-slips')} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                View All
+              </Button>
+            </Box>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold' }}>Slip #</TableCell>
+                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold' }}>Customer</TableCell>
+                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold' }}>Amount</TableCell>
+                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold' }}>Date</TableCell>
+                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold' }}>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {dashboardData?.recentSales?.slice(0, 5).map((sale, idx) => (
+                    <TableRow key={idx} hover>
+                      <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{sale.slipNumber || 'N/A'}</TableCell>
+                      <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{sale.customerName || 'Walk-in'}</TableCell>
+                      <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold', color: 'success.main' }}>
+                        Rs {sale.totalAmount?.toLocaleString() || 0}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        {new Date(sale.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={sale.status || 'Paid'} 
+                          size="small" 
+                          color={sale.status === 'Paid' ? 'success' : sale.status === 'Pending' ? 'warning' : 'error'}
+                          sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Grid>
+
+        {/* System Alerts & Notifications */}
+        <Grid item xs={12} lg={4}>
+          <Paper sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Notifications sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                System Alerts
+              </Typography>
+            </Box>
+            <List dense>
+              {dashboardData?.summary?.lowStockItems > 0 && (
+                <ListItem sx={{ px: 0 }}>
+                  <Chip 
+                    icon={<Warning />} 
+                    label={`${dashboardData.summary.lowStockItems} items low in stock`} 
+                    color="warning" 
+                    size="small"
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                  />
+                </ListItem>
+              )}
+              {dashboardData?.summary?.outOfStockItems > 0 && (
+                <ListItem sx={{ px: 0 }}>
+                  <Chip 
+                    icon={<Inventory2 />} 
+                    label={`${dashboardData.summary.outOfStockItems} items out of stock`} 
+                    color="error" 
+                    size="small"
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                  />
+                </ListItem>
+              )}
+              {dashboardData?.summary?.pendingOrders > 0 && (
+                <ListItem sx={{ px: 0 }}>
+                  <Chip 
+                    icon={<PendingActions />} 
+                    label={`${dashboardData.summary.pendingOrders} pending orders`} 
+                    color="info" 
+                    size="small"
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                  />
+                </ListItem>
+              )}
+              {(!dashboardData?.summary?.lowStockItems && !dashboardData?.summary?.outOfStockItems && !dashboardData?.summary?.pendingOrders) && (
+                <ListItem sx={{ px: 0 }}>
+                  <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    No alerts at this time
+                  </Typography>
+                </ListItem>
+              )}
+            </List>
           </Paper>
         </Grid>
       </Grid>

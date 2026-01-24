@@ -1177,23 +1177,28 @@ const Slips = () => {
               </Grid>
             )})}
 
-            {/* Summary */}
+            {/* Summary - Redesigned for Better Layout */}
             <Grid item xs={12}>
               <Card sx={{ 
-                p: 3, 
+                p: { xs: 2, sm: 3 }, 
                 background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                 color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 15px rgba(25, 118, 210, 0.3)'
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(25, 118, 210, 0.3)'
               }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" sx={{ opacity: 0.9 }}>Order Summary</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                    {formData.items.length} item(s)
-                  </Typography>
+                  <Typography variant="h6" sx={{ opacity: 0.9, fontSize: { xs: '1rem', sm: '1.25rem' } }}>Order Summary</Typography>
+                  <Chip 
+                    label={`${formData.items.length} item(s)`}
+                    sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.2)', 
+                      color: 'white',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    }} 
+                  />
                 </Box>
                 
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: 2, maxHeight: { xs: '200px', sm: '300px' }, overflowY: 'auto' }}>
                   {formData.items.map((item, idx) => {
                     const pricing = calculateItemPricing(item);
                     const foundProduct = findProductFromInventory(item);
@@ -1214,29 +1219,47 @@ const Slips = () => {
                       <Box key={idx} sx={{ 
                         display: 'flex', 
                         justifyContent: 'space-between', 
-                        mb: 0.5,
-                        fontSize: '0.875rem',
-                        opacity: 0.9
+                        alignItems: 'center',
+                        mb: 1,
+                        p: 1,
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        borderRadius: 1
                       }}>
-                        <Typography variant="body2">
-                          {foundProduct?.name || productName} x{item.quantity}
-                        </Typography>
-                        <Typography variant="body2">
-                          Rs {pricing.total.toFixed(2)}
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ 
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            fontWeight: 'bold',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {foundProduct?.name || productName}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                            opacity: 0.8
+                          }}>
+                            Qty: {item.quantity} × Rs {item.price?.toFixed(2) || 0}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'right', ml: 2 }}>
+                          <Typography variant="body2" sx={{ 
+                            fontSize: { xs: '0.875rem', sm: '1rem' },
+                            fontWeight: 'bold'
+                          }}>
+                            Rs {pricing.total.toFixed(2)}
+                          </Typography>
                           {pricing.discountAmount > 0 && (
-                            <Chip 
-                              label={`-Rs ${pricing.discountAmount.toFixed(2)}`} 
-                              size="small" 
-                              sx={{ 
-                                ml: 1, 
-                                bgcolor: 'rgba(255,255,255,0.2)', 
-                                color: 'white',
-                                fontSize: '0.65rem',
-                                height: '18px'
-                              }} 
-                            />
+                            <Typography variant="caption" sx={{ 
+                              fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                              opacity: 0.9,
+                              display: 'block',
+                              mt: 0.25
+                            }}>
+                              -Rs {pricing.discountAmount.toFixed(2)}
+                            </Typography>
                           )}
-                        </Typography>
+                        </Box>
                       </Box>
                     );
                   })}
@@ -1245,24 +1268,39 @@ const Slips = () => {
                 <Divider sx={{ my: 2, bgcolor: 'rgba(255,255,255,0.3)' }} />
                 
                 <Box>
-                <Typography variant="h6" sx={{ mb: 1, opacity: 0.9 }}>Total Amount</Typography>
-                <Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
-                    Rs {totalAmount.toFixed(2)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                    Subtotal: Rs {subtotal.toFixed(2)}
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      Subtotal:
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      Rs {subtotal.toFixed(2)}
+                    </Typography>
+                  </Box>
                   {formData.items.some(item => {
                     const pricing = calculateItemPricing(item);
                     return pricing.discountAmount > 0;
                   }) && (
-                    <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                      Total Discount: Rs {formData.items.reduce((sum, item) => {
-                        const pricing = calculateItemPricing(item);
-                        return sum + pricing.discountAmount;
-                      }, 0).toFixed(2)}
-                </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                        Total Discount:
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                        -Rs {formData.items.reduce((sum, item) => {
+                          const pricing = calculateItemPricing(item);
+                          return sum + pricing.discountAmount;
+                        }, 0).toFixed(2)}
+                      </Typography>
+                    </Box>
                   )}
+                  <Divider sx={{ my: 1.5, bgcolor: 'rgba(255,255,255,0.3)' }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h6" sx={{ opacity: 0.9, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                      Total Amount
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                      Rs {totalAmount.toFixed(2)}
+                    </Typography>
+                  </Box>
                 </Box>
               </Card>
             </Grid>

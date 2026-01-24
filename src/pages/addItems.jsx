@@ -628,6 +628,45 @@ const AddItems = () => {
                 required
                 inputProps={{ min: 1 }}
                 placeholder="1"
+                defaultValue="1"
+                size={isMobile ? 'small' : 'medium'}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+                  }
+                }}
+              />
+            </Grid>
+
+            {/* Description - Optional */}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Description (Optional)"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                multiline
+                rows={2}
+                placeholder="Add any additional notes or description"
+                size={isMobile ? 'small' : 'medium'}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+                  }
+                }}
+              />
+            </Grid>
+
+            {/* Supplier - Optional */}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Supplier (Optional)"
+                name="supplier"
+                value={formData.supplier}
+                onChange={handleInputChange}
+                placeholder="Enter supplier name"
                 size={isMobile ? 'small' : 'medium'}
                 sx={{
                   '& .MuiInputBase-input': {
