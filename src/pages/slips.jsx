@@ -743,7 +743,7 @@ const Slips = () => {
 
       // ✔ UPDATED — ONLY SEND WHAT BACKEND ACCEPTS
       const slipData = {
-        customerName: formData.customerName,
+        customerName: formData.customerName.trim() || 'Walk Customer',
         paymentMethod: formData.paymentMethod || 'Cash',
         products: productsData,
         subtotal,

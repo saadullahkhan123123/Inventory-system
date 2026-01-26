@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Box, Paper, Typography, TextField, Button, Grid, Card, CardContent,
+  Box, Paper, Typography, TextField, Button, Grid, Card, CardContent, CardActions,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Dialog, DialogTitle, DialogContent, DialogActions, FormControl,
   InputLabel, Select, MenuItem, IconButton, Chip, Alert,
-  CircularProgress, Stack, Divider
+  CircularProgress, Stack, Divider, Tabs, Tab, Badge, Tooltip,
+  useMediaQuery, useTheme, ToggleButton, ToggleButtonGroup
 } from '@mui/material';
 import {
   Search, Refresh, Edit, Visibility, Cancel,
-  Clear, LocalOffer, Save, Delete, Add
+  Clear, Save, Delete, Add, FilterList, Sort,
+  Download, ViewList, ViewModule, DateRange,
+  AccountBalance, AttachMoney, Receipt
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { axiosApi } from '../utils/api';
@@ -16,12 +19,14 @@ import { useNotification } from '../utils/notifications';
 
 const SearchSlip = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { notification, showNotification, hideNotification } = useNotification();
 
   // State management
   const [searchTerm, setSearchTerm] = useState('');
-  const [allSlips, setAllSlips] = useState([]); // Store all slips from server
-  const [searchResults, setSearchResults] = useState([]); // Filtered results to display
+  const [allSlips, setAllSlips] = useState([]);
+  const [filteredSlips, setFilteredSlips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -29,6 +34,11 @@ const SearchSlip = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [viewMode, setViewMode] = useState('table');
   const [editForm, setEditForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -42,39 +52,63 @@ const SearchSlip = () => {
     fetchAllSlips();
   }, [startDate, endDate]);
 
-  // Update search results when search term or allSlips changes
+  // Filter and sort slips
   useEffect(() => {
-      if (!searchTerm.trim()) {
-      setSearchResults(allSlips);
-        return;
-      }
+    let filtered = [...allSlips];
 
-    const term = searchTerm.toLowerCase().trim();
-    const filteredSlips = allSlips.filter(slip => {
-      // Search in customer name
-      if (slip.customerName?.toLowerCase().includes(term)) return true;
-      
-      // Search in slip number or ID
-      if (slip.slipNumber?.toLowerCase().includes(term) || 
-          slip._id?.toLowerCase().includes(term)) return true;
-      
-      // Search in product names
-      if (slip.products?.some(p => 
-          p.productName?.toLowerCase().includes(term)
-      )) return true;
-      
-      // Search in customer phone
-      if (slip.customerPhone?.toLowerCase().includes(term)) return true;
-      
-      return false;
+    // Search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(slip => {
+        if (slip.customerName?.toLowerCase().includes(term)) return true;
+        if (slip.slipNumber?.toLowerCase().includes(term) || 
+            slip._id?.toLowerCase().includes(term)) return true;
+        if (slip.products?.some(p => 
+            p.productName?.toLowerCase().includes(term)
+        )) return true;
+        if (slip.customerPhone?.toLowerCase().includes(term)) return true;
+        return false;
+      });
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(slip => slip.status === statusFilter);
+    }
+
+    // Payment filter
+    if (paymentFilter !== 'all') {
+      filtered = filtered.filter(slip => slip.paymentMethod === paymentFilter);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      switch (sortBy) {
+        case 'date':
+          aVal = new Date(a.date || a.createdAt);
+          bVal = new Date(b.date || b.createdAt);
+          break;
+        case 'amount':
+          aVal = a.totalAmount || 0;
+          bVal = b.totalAmount || 0;
+          break;
+        case 'customer':
+          aVal = (a.customerName || '').toLowerCase();
+          bVal = (b.customerName || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+      if (sortOrder === 'asc') {
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      } else {
+        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+      }
     });
 
-      setSearchResults(filteredSlips);
-      
-    if (filteredSlips.length === 0 && allSlips.length > 0) {
-        showNotification('info', 'No slips found matching your search.');
-      }
-  }, [searchTerm, allSlips]);
+    setFilteredSlips(filtered);
+  }, [searchTerm, allSlips, statusFilter, paymentFilter, sortBy, sortOrder]);
 
   // Fetch all slips with optional date range filter
   const fetchAllSlips = async () => {
@@ -88,45 +122,41 @@ const SearchSlip = () => {
       const slips = response.data.slips || response.data || [];
       const slipsArray = Array.isArray(slips) ? slips : [];
       setAllSlips(slipsArray);
-      // searchResults will be updated by useEffect
     } catch (error) {
       console.error('Error fetching slips:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Failed to load slips';
-      const errorDetails = error.code === 'ECONNABORTED' 
-        ? 'Request timeout - backend may be slow or unreachable'
-        : error.message === 'Network Error'
-        ? 'Network error - check if backend is running'
-        : errorMsg;
-      showNotification('error', `Failed to load slips: ${errorDetails}`);
+      showNotification('error', `Failed to load slips: ${errorMsg}`);
       setAllSlips([]);
-      setSearchResults([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle search button click
-  const handleSearch = () => {
-    // Search is handled automatically by useEffect
-    // This function is kept for the button click handler
-    if (!searchTerm.trim()) {
-      fetchAllSlips();
-    }
-  };
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const total = filteredSlips.length;
+    const totalAmount = filteredSlips.reduce((sum, slip) => sum + (slip.totalAmount || 0), 0);
+    const paid = filteredSlips.filter(s => s.status === 'Paid').length;
+    const pending = filteredSlips.filter(s => s.status === 'Pending').length;
+    const cancelled = filteredSlips.filter(s => s.status === 'Cancelled').length;
+    return { total, totalAmount, paid, pending, cancelled };
+  }, [filteredSlips]);
 
-  // Clear search and filters
-  const clearSearch = () => {
+  // Clear all filters
+  const clearFilters = () => {
     setSearchTerm('');
     setStartDate('');
     setEndDate('');
-    // Results will update automatically via useEffect
+    setStatusFilter('all');
+    setPaymentFilter('all');
+    setSortBy('date');
+    setSortOrder('desc');
   };
 
   // Open edit dialog and populate form
   const handleEditClick = (slip) => {
-    // Prevent editing cancelled slips
     if (slip.status === 'Cancelled') {
-      showNotification('warning', 'Cannot edit a cancelled slip. Please restore it first.');
+      showNotification('warning', 'Cannot edit a cancelled slip.');
       return;
     }
 
@@ -153,7 +183,7 @@ const SearchSlip = () => {
         category: product.category || '',
         subcategory: product.subcategory || '',
         company: product.company || '',
-        originalQuantity: product.quantity // Store original for inventory updates
+        originalQuantity: product.quantity
       })) || []
     });
     setOpenEditDialog(true);
@@ -213,18 +243,16 @@ const SearchSlip = () => {
     }
   };
 
-  // Update slip with inventory adjustment
+  // Update slip
   const handleUpdateSlip = async () => {
     try {
       setLoading(true);
 
-      // Validate products
       if (!editForm.products || editForm.products.length === 0) {
         showNotification('error', 'At least one product is required');
         return;
       }
 
-      // Validate each product
       for (const product of editForm.products) {
         if (!product.productName || !product.productName.trim()) {
           showNotification('error', 'All products must have a name');
@@ -240,7 +268,6 @@ const SearchSlip = () => {
         }
       }
 
-      // Calculate new totals
       const subtotal = editForm.products.reduce((sum, product) => {
         const total = (product.quantity || 0) * (product.unitPrice || 0);
         return sum + total;
@@ -251,7 +278,7 @@ const SearchSlip = () => {
       const totalAmount = subtotal - discount + tax;
 
       const updatedData = {
-        customerName: editForm.customerName || 'Walk-in Customer',
+        customerName: editForm.customerName.trim() || 'Walk Customer',
         customerPhone: editForm.customerPhone || '',
         paymentMethod: editForm.paymentMethod || 'Cash',
         notes: editForm.notes || '',
@@ -283,10 +310,9 @@ const SearchSlip = () => {
       const response = await axiosApi.slips.update(selectedSlip._id, updatedData);
       
       if (response.data) {
-        showNotification('success', 'Slip updated successfully! Inventory has been adjusted.');
+        showNotification('success', 'Slip updated successfully!');
         setOpenEditDialog(false);
         setSelectedSlip(null);
-        // Refresh all slips
         await fetchAllSlips();
       }
       
@@ -302,59 +328,67 @@ const SearchSlip = () => {
     }
   };
 
-  // Cancel slip (mark as cancelled and adjust inventory)
+  // Cancel slip
   const handleCancelSlip = async () => {
     try {
       setLoading(true);
 
-      // Check if already cancelled
       if (selectedSlip.status === 'Cancelled') {
         showNotification('warning', 'This slip is already cancelled.');
         setOpenCancelDialog(false);
         return;
       }
 
-      // Use dedicated cancel endpoint for better synchronization
       const response = await axiosApi.slips.cancel(selectedSlip._id, 'Cancelled by admin');
       
       if (response.data) {
         const details = response.data.details || {};
         showNotification('success', 
-          `Slip cancelled successfully! ${details.inventoryItemsRestored || 0} item(s) restored to inventory. ${details.incomeRecordsUpdated || 0} income record(s) updated.`
+          `Slip cancelled successfully! ${details.inventoryItemsRestored || 0} item(s) restored.`
         );
-      setOpenCancelDialog(false);
+        setOpenCancelDialog(false);
         setSelectedSlip(null);
-        // Refresh all slips
-      await fetchAllSlips();
+        await fetchAllSlips();
       }
       
     } catch (error) {
       console.error('Cancel error:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Failed to cancel slip';
-      const errorDetails = error.response?.data?.details || '';
-      showNotification('error', `${errorMsg}${errorDetails ? `: ${errorDetails}` : ''}`);
+      showNotification('error', errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  // View slip details - FIXED: Check if route exists
-  const handleViewSlip = (slipId) => {
-    // Check if the individual slip page exists in your routes
-    // If not, show details in a dialog instead
+  // Delete slip
+  const handleDeleteSlip = async () => {
     try {
-      navigate(`/slips/${slipId}`);
+      setLoading(true);
+      await axiosApi.slips.delete(selectedSlip._id);
+      showNotification('success', 'Slip deleted successfully!');
+      setOpenDeleteDialog(false);
+      setSelectedSlip(null);
+      await fetchAllSlips();
     } catch (error) {
-      console.warn('Individual slip route not available, showing in dialog');
-      // You can implement a view dialog here if needed
-      showNotification('info', 'Individual slip view page is not available.');
+      console.error('Delete error:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to delete slip';
+      showNotification('error', errorMsg);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // View slip details
+  const handleViewSlip = (slipId) => {
+    navigate(`/slips/${slipId}`);
   };
 
   // Get payment method color
   const getPaymentMethodColor = (method) => {
     const colors = {
       'Cash': 'success',
+      'Udhar': 'warning',
+      'Account': 'info',
       'Card': 'primary',
       'UPI': 'secondary',
       'Bank Transfer': 'info',
@@ -381,7 +415,7 @@ const SearchSlip = () => {
 
   return (
     <Box sx={{ 
-      maxWidth: 1400, 
+      maxWidth: 1600, 
       mx: 'auto', 
       mt: { xs: 1, sm: 2 }, 
       p: { xs: 1.5, sm: 2, md: 3 },
@@ -390,25 +424,131 @@ const SearchSlip = () => {
     }}>
       {/* Header */}
       <Box sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
-        <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ 
-          background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          mb: 1,
-          fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
-          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-        }}>
-          Search & Manage Slips
-        </Typography>
-        <Typography variant="subtitle1" color="textSecondary" sx={{
-          fontSize: { xs: '0.875rem', sm: '1rem' },
-          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-        }}>
-          Search by product name, customer, or slip ID. Edit details or cancel slips.
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ 
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 1,
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
+            }}>
+              Search & Manage Slips
+            </Typography>
+            <Typography variant="subtitle1" color="textSecondary" sx={{
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}>
+              Search, filter, and manage all sales slips
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={(e, newMode) => newMode && setViewMode(newMode)}
+              size="small"
+            >
+              <ToggleButton value="table">
+                <ViewList fontSize="small" />
+              </ToggleButton>
+              <ToggleButton value="card">
+                <ViewModule fontSize="small" />
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Tooltip title="Refresh">
+              <IconButton onClick={fetchAllSlips} disabled={loading}>
+                <Refresh />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Box>
       </Box>
 
-      {/* Enhanced Search Section with Date Range */}
+      {/* Statistics Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+          }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography variant="h4" fontWeight="bold">
+                {stats.total}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Slips
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white',
+            boxShadow: '0 4px 15px rgba(245, 87, 108, 0.4)'
+          }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography variant="h4" fontWeight="bold">
+                Rs {stats.totalAmount.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Amount
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white',
+            boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)'
+          }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography variant="h4" fontWeight="bold">
+                {stats.paid}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Paid
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            color: 'white',
+            boxShadow: '0 4px 15px rgba(250, 112, 154, 0.4)'
+          }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography variant="h4" fontWeight="bold">
+                {stats.pending}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Pending
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+            color: 'white',
+            boxShadow: '0 4px 15px rgba(48, 207, 208, 0.4)'
+          }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography variant="h4" fontWeight="bold">
+                {stats.cancelled}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Cancelled
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Search and Filters */}
       <Paper sx={{ 
         p: { xs: 2, sm: 3 }, 
         mb: { xs: 2, sm: 3 },
@@ -417,19 +557,19 @@ const SearchSlip = () => {
         boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
       }} elevation={0}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={5}>
+          <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="Search by Product Name, Customer, Phone, or Slip ID"
+              label="Search by Customer, Slip ID, Product, or Phone"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               InputProps={{
                 startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
               }}
+              size={isMobile ? 'small' : 'medium'}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={2.5}>
+          <Grid item xs={6} sm={4} md={2}>
             <TextField
               fullWidth
               type="date"
@@ -437,10 +577,10 @@ const SearchSlip = () => {
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
-              size="small"
+              size={isMobile ? 'small' : 'medium'}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={2.5}>
+          <Grid item xs={6} sm={4} md={2}>
             <TextField
               fullWidth
               type="date"
@@ -448,229 +588,431 @@ const SearchSlip = () => {
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
-              size="small"
+              size={isMobile ? 'small' : 'medium'}
               inputProps={{ 
                 min: startDate || undefined 
               }}
             />
           </Grid>
-          <Grid item xs={12} md={2}>
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="contained"
-                startIcon={<Search />}
-                onClick={handleSearch}
-                disabled={loading}
-                sx={{ flex: 1 }}
-                size="small"
+          <Grid item xs={6} sm={4} md={1.5}>
+            <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                label="Status"
               >
-                {loading ? <CircularProgress size={20} /> : 'Search'}
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Refresh />}
-                onClick={fetchAllSlips}
-                size="small"
-              >
-                Refresh
-              </Button>
-              {(searchTerm || startDate || endDate) && (
-                <Button
-                  variant="outlined"
-                  startIcon={<Clear />}
-                  onClick={clearSearch}
-                  color="secondary"
-                  size="small"
-                >
-                  Clear
-                </Button>
-              )}
-            </Stack>
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="Paid">Paid</MenuItem>
+                <MenuItem value="Pending">Pending</MenuItem>
+                <MenuItem value="Cancelled">Cancelled</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
+          <Grid item xs={6} sm={4} md={1.5}>
+            <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+              <InputLabel>Payment</InputLabel>
+              <Select
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value)}
+                label="Payment"
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="Cash">Cash</MenuItem>
+                <MenuItem value="Udhar">Udhar</MenuItem>
+                <MenuItem value="Account">Account</MenuItem>
+                <MenuItem value="Card">Card</MenuItem>
+                <MenuItem value="UPI">UPI</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} sm={4} md={1}>
+            <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+              <InputLabel>Sort</InputLabel>
+              <Select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                label="Sort"
+              >
+                <MenuItem value="date">Date</MenuItem>
+                <MenuItem value="amount">Amount</MenuItem>
+                <MenuItem value="customer">Customer</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} sm={4} md={1}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              size={isMobile ? 'small' : 'medium'}
+              startIcon={<Sort />}
+            >
+              {sortOrder === 'asc' ? 'ASC' : 'DESC'}
+            </Button>
+          </Grid>
+          {(searchTerm || startDate || endDate || statusFilter !== 'all' || paymentFilter !== 'all') && (
+            <Grid item xs={12} sm={12} md={1}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<Clear />}
+                onClick={clearFilters}
+                color="secondary"
+                size={isMobile ? 'small' : 'medium'}
+              >
+                Clear
+              </Button>
+            </Grid>
+          )}
         </Grid>
       </Paper>
 
-      {/* Results Section */}
-      <Paper elevation={0} sx={{ 
-        borderRadius: 3,
-        overflow: 'hidden',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-      }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ 
-                background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                '& .MuiTableCell-head': {
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: { xs: '0.75rem', sm: '0.85rem', md: '0.95rem' },
-                  padding: { xs: '8px', sm: '12px', md: '16px' }
+      {/* Results */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : viewMode === 'table' ? (
+        <Paper elevation={0} sx={{ 
+          borderRadius: 3,
+          overflow: 'hidden',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ 
+                  background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                  '& .MuiTableCell-head': {
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: { xs: '0.75rem', sm: '0.85rem', md: '0.95rem' },
+                    padding: { xs: '8px', sm: '12px', md: '16px' }
+                  }
+                }}>
+                  <TableCell>Slip ID</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Customer</TableCell>
+                  <TableCell>Date</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Products</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Payment</TableCell>
+                  <TableCell>Total</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredSlips.map((slip) => (
+                  <TableRow 
+                    key={slip._id} 
+                    hover
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                        transform: 'scale(1.01)',
+                        transition: 'all 0.2s ease-in-out'
+                      },
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        {slip.slipNumber || slip._id?.slice(-8)}
+                      </Typography>
+                      <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 0.5 }}>
+                        <Typography variant="caption" color="textSecondary">
+                          {slip.customerName || 'Walk Customer'}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                      <Box>
+                        <Typography variant="body2" fontWeight="medium">
+                          {slip.customerName || 'Walk Customer'}
+                        </Typography>
+                        {slip.customerPhone && (
+                          <Typography variant="caption" color="textSecondary">
+                            {slip.customerPhone}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        {new Date(slip.date || slip.createdAt).toLocaleDateString()}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                        {new Date(slip.date || slip.createdAt).toLocaleTimeString()}
+                      </Typography>
+                    </TableCell>
+                    
+                    <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
+                      <Box sx={{ maxWidth: 200 }}>
+                        {slip.products?.slice(0, 2).map((product, index) => (
+                          <Typography key={index} variant="body2" noWrap sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                            {product.productName} (x{product.quantity})
+                          </Typography>
+                        ))}
+                        {slip.products?.length > 2 && (
+                          <Typography variant="caption" color="textSecondary">
+                            +{slip.products.length - 2} more
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Chip
+                        label={slip.status || 'Paid'}
+                        color={getStatusColor(slip.status)}
+                        size="small"
+                        sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
+                      />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Chip
+                        label={slip.paymentMethod || 'Cash'}
+                        color={getPaymentMethodColor(slip.paymentMethod)}
+                        size="small"
+                        sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
+                      />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="bold" sx={{ 
+                        color: 'success.main',
+                        fontSize: { xs: '0.875rem', sm: '1rem' }
+                      }}>
+                        Rs {slip.totalAmount?.toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
+                        <Tooltip title="View">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleViewSlip(slip._id)}
+                          >
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => handleEditClick(slip)}
+                            disabled={slip.status === 'Cancelled'}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        
+                        {slip.status !== 'Cancelled' && (
+                          <>
+                            <Tooltip title="Cancel">
+                              <IconButton
+                                size="small"
+                                color="warning"
+                                onClick={() => {
+                                  setSelectedSlip(slip);
+                                  setOpenCancelDialog(true);
+                                }}
+                              >
+                                <Cancel fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => {
+                                  setSelectedSlip(slip);
+                                  setOpenDeleteDialog(true);
+                                }}
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {filteredSlips.length === 0 && (
+            <Box sx={{ 
+              p: 6, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%)',
+              borderRadius: 2
+            }}>
+              <Search sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+              <Typography variant="h6" color="textSecondary" fontWeight="medium">
+                No slips found
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                {searchTerm || statusFilter !== 'all' || paymentFilter !== 'all' 
+                  ? 'Try adjusting your filters' 
+                  : 'No slips available. Create your first slip to get started!'}
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      ) : (
+        <Grid container spacing={2}>
+          {filteredSlips.map((slip) => (
+            <Grid item xs={12} sm={6} md={4} key={slip._id}>
+              <Card sx={{ 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
                 }
               }}>
-                <TableCell><strong>Slip ID</strong></TableCell>
-                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}><strong>Customer</strong></TableCell>
-                <TableCell><strong>Date</strong></TableCell>
-                <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}><strong>Products</strong></TableCell>
-                <TableCell><strong>Status</strong></TableCell>
-                <TableCell><strong>Total</strong></TableCell>
-                <TableCell><strong>Actions</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {searchResults.map((slip) => (
-                <TableRow 
-                  key={slip._id} 
-                  hover
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: 'rgba(25, 118, 210, 0.04)',
-                      transform: 'scale(1.01)',
-                      transition: 'all 0.2s ease-in-out'
-                    },
-                    transition: 'all 0.2s ease-in-out'
-                  }}
-                >
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      {slip.slipNumber || slip._id}
-                    </Typography>
-                    <Chip
-                      label={slip.paymentMethod}
-                      color={getPaymentMethodColor(slip.paymentMethod)}
-                      size="small"
-                      sx={{ mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
-                    />
-                    <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 0.5 }}>
-                      <Typography variant="caption" color="textSecondary">
-                        {slip.customerName || 'Walk-in Customer'}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  
-                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="medium">
-                        {slip.customerName || 'Walk-in Customer'}
+                      <Typography variant="h6" fontWeight="bold" gutterBottom>
+                        {slip.slipNumber || slip._id?.slice(-8)}
                       </Typography>
-                      {slip.customerPhone && (
-                        <Typography variant="caption" color="textSecondary">
-                          {slip.customerPhone}
-                        </Typography>
-                      )}
+                      <Typography variant="body2" color="textSecondary">
+                        {new Date(slip.date || slip.createdAt).toLocaleString()}
+                      </Typography>
                     </Box>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      {new Date(slip.date || slip.createdAt).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                      {new Date(slip.date || slip.createdAt).toLocaleTimeString()}
-                    </Typography>
-                  </TableCell>
-                  
-                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
-                    <Box sx={{ maxWidth: 200 }}>
-                      {slip.products?.map((product, index) => (
-                        <Typography key={index} variant="body2" noWrap sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                          {product.productName} (x{product.quantity})
-                        </Typography>
-                      ))}
-                    </Box>
-                  </TableCell>
-                  
-                  <TableCell>
                     <Chip
                       label={slip.status || 'Paid'}
                       color={getStatusColor(slip.status)}
                       size="small"
                     />
-                  </TableCell>
+                  </Box>
                   
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="bold" sx={{ 
-                      color: 'success.main',
-                      fontSize: { xs: '0.875rem', sm: '1rem' }
-                    }}>
-                      Rs {slip.totalAmount?.toLocaleString()}
+                  <Divider sx={{ my: 2 }} />
+                  
+                  <Typography variant="body1" fontWeight="medium" gutterBottom>
+                    {slip.customerName || 'Walk Customer'}
+                  </Typography>
+                  {slip.customerPhone && (
+                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                      {slip.customerPhone}
                     </Typography>
-                  </TableCell>
+                  )}
                   
-                  <TableCell>
-                    <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleViewSlip(slip._id)}
-                        title="View Details"
-                      >
-                        <Visibility />
-                      </IconButton>
-                      
-                      <IconButton
-                        size="small"
-                        color="secondary"
-                        onClick={() => handleEditClick(slip)}
-                        title="Edit Slip"
-                        disabled={slip.status === 'Cancelled'}
-                      >
-                        <Edit />
-                      </IconButton>
-                      
-                      {slip.status !== 'Cancelled' && (
-                        <>
-                          <IconButton
-                            size="small"
-                            color="warning"
-                            onClick={() => {
-                              setSelectedSlip(slip);
-                              setOpenCancelDialog(true);
-                            }}
-                            title="Cancel Slip"
-                          >
-                            <Cancel />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => {
-                              setSelectedSlip(slip);
-                              setOpenDeleteDialog(true);
-                            }}
-                            title="Delete Slip"
-                          >
-                            <Delete />
-                          </IconButton>
-                        </>
-                      )}
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                  <Box sx={{ display: 'flex', gap: 1, my: 2, flexWrap: 'wrap' }}>
+                    <Chip
+                      label={slip.paymentMethod || 'Cash'}
+                      color={getPaymentMethodColor(slip.paymentMethod)}
+                      size="small"
+                    />
+                    <Chip
+                      label={`${slip.products?.length || 0} items`}
+                      variant="outlined"
+                      size="small"
+                    />
+                  </Box>
+                  
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                    Products:
+                  </Typography>
+                  <Box sx={{ mb: 2, maxHeight: 100, overflow: 'auto' }}>
+                    {slip.products?.slice(0, 3).map((product, index) => (
+                      <Typography key={index} variant="caption" display="block" sx={{ mb: 0.5 }}>
+                        • {product.productName} (x{product.quantity})
+                      </Typography>
+                    ))}
+                    {slip.products?.length > 3 && (
+                      <Typography variant="caption" color="textSecondary">
+                        +{slip.products.length - 3} more
+                      </Typography>
+                    )}
+                  </Box>
+                  
+                  <Typography variant="h6" fontWeight="bold" color="success.main" sx={{ mt: 'auto' }}>
+                    Rs {slip.totalAmount?.toLocaleString()}
+                  </Typography>
+                </CardContent>
+                <CardActions sx={{ p: 2, pt: 0, justifyContent: 'space-between' }}>
+                  <Button
+                    size="small"
+                    startIcon={<Visibility />}
+                    onClick={() => handleViewSlip(slip._id)}
+                  >
+                    View
+                  </Button>
+                  <Stack direction="row" spacing={0.5}>
+                    <IconButton
+                      size="small"
+                      color="secondary"
+                      onClick={() => handleEditClick(slip)}
+                      disabled={slip.status === 'Cancelled'}
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    {slip.status !== 'Cancelled' && (
+                      <>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => {
+                            setSelectedSlip(slip);
+                            setOpenCancelDialog(true);
+                          }}
+                        >
+                          <Cancel fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => {
+                            setSelectedSlip(slip);
+                            setOpenDeleteDialog(true);
+                          }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </>
+                    )}
+                  </Stack>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+          {filteredSlips.length === 0 && (
+            <Grid item xs={12}>
+              <Box sx={{ 
+                p: 6, 
+                textAlign: 'center',
+                background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%)',
+                borderRadius: 2
+              }}>
+                <Search sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+                <Typography variant="h6" color="textSecondary" fontWeight="medium">
+                  No slips found
+                </Typography>
+                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                  {searchTerm || statusFilter !== 'all' || paymentFilter !== 'all' 
+                    ? 'Try adjusting your filters' 
+                    : 'No slips available. Create your first slip to get started!'}
+                </Typography>
+              </Box>
+            </Grid>
+          )}
+        </Grid>
+      )}
 
-        {searchResults.length === 0 && !loading && (
-          <Box sx={{ 
-            p: 6, 
-            textAlign: 'center',
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%)',
-            borderRadius: 2
-          }}>
-            <Search sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
-            <Typography variant="h6" color="textSecondary" fontWeight="medium">
-              No slips found
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-              {searchTerm ? 'Try a different search term' : 'No slips available. Create your first slip to get started!'}
-            </Typography>
-          </Box>
-        )}
-      </Paper>
-
-      {/* Edit Dialog */}
+      {/* Edit Dialog - Keep existing implementation */}
       <Dialog 
         open={openEditDialog} 
         onClose={() => setOpenEditDialog(false)}
@@ -693,7 +1035,6 @@ const SearchSlip = () => {
         <DialogContent>
           {selectedSlip && (
             <Box sx={{ mt: 2 }}>
-              {/* Customer Information */}
               <Typography variant="h6" gutterBottom>
                 Customer Information
               </Typography>
@@ -723,6 +1064,8 @@ const SearchSlip = () => {
                       label="Payment Method"
                     >
                       <MenuItem value="Cash">Cash</MenuItem>
+                      <MenuItem value="Udhar">Udhar</MenuItem>
+                      <MenuItem value="Account">Account</MenuItem>
                       <MenuItem value="Card">Card</MenuItem>
                       <MenuItem value="UPI">UPI</MenuItem>
                       <MenuItem value="Bank Transfer">Bank Transfer</MenuItem>
@@ -735,7 +1078,6 @@ const SearchSlip = () => {
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Products Section */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">
                   Products
@@ -812,7 +1154,6 @@ const SearchSlip = () => {
                 </Card>
               ))}
 
-              {/* Total Display */}
               <Box sx={{ 
                 p: 3, 
                 background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
@@ -894,18 +1235,17 @@ const SearchSlip = () => {
             </Alert>
           ) : (
             <>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            This action cannot be undone!
-          </Alert>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to cancel this slip? This will:
-          </Typography>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                This action cannot be undone!
+              </Alert>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                Are you sure you want to cancel this slip? This will:
+              </Typography>
               <Box component="ul" sx={{ pl: 2, mb: 2 }}>
-                <li>Mark the slip as <strong>"Cancelled"</strong> (status change)</li>
+                <li>Mark the slip as <strong>"Cancelled"</strong></li>
                 <li>Return all products to inventory stock</li>
                 <li>Remove the sale amount from income records</li>
                 <li>Create an audit trail with cancellation timestamp</li>
-                <li>Prevent duplicate cancellation</li>
               </Box>
               <Box sx={{ 
                 p: 2, 
@@ -915,21 +1255,18 @@ const SearchSlip = () => {
               }}>
                 <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
                   Slip Details:
-          </Typography>
+                </Typography>
                 <Typography variant="body2">
                   <strong>Slip #:</strong> {selectedSlip?.slipNumber || selectedSlip?._id}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Customer:</strong> {selectedSlip?.customerName || 'Walk-in Customer'}
+                  <strong>Customer:</strong> {selectedSlip?.customerName || 'Walk Customer'}
                 </Typography>
                 <Typography variant="body2">
                   <strong>Total Amount:</strong> Rs {selectedSlip?.totalAmount?.toLocaleString()}
                 </Typography>
                 <Typography variant="body2">
                   <strong>Products:</strong> {selectedSlip?.products?.length || 0} item(s)
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Total Quantity:</strong> {selectedSlip?.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0} units
                 </Typography>
               </Box>
             </>
@@ -942,7 +1279,7 @@ const SearchSlip = () => {
             color="error"
             startIcon={<Cancel />}
             onClick={handleCancelSlip}
-            disabled={loading}
+            disabled={loading || selectedSlip?.status === 'Cancelled'}
           >
             {loading ? <CircularProgress size={24} /> : 'Cancel Slip'}
           </Button>
@@ -985,16 +1322,13 @@ const SearchSlip = () => {
               <strong>Slip #:</strong> {selectedSlip?.slipNumber || selectedSlip?._id}
             </Typography>
             <Typography variant="body2">
-              <strong>Customer:</strong> {selectedSlip?.customerName || 'Walk-in Customer'}
+              <strong>Customer:</strong> {selectedSlip?.customerName || 'Walk Customer'}
             </Typography>
             <Typography variant="body2">
               <strong>Total Amount:</strong> Rs {selectedSlip?.totalAmount?.toLocaleString()}
             </Typography>
             <Typography variant="body2">
               <strong>Products:</strong> {selectedSlip?.products?.length || 0} item(s)
-            </Typography>
-            <Typography variant="body2">
-              <strong>Total Quantity:</strong> {selectedSlip?.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0} units
             </Typography>
           </Box>
         </DialogContent>
@@ -1004,22 +1338,7 @@ const SearchSlip = () => {
             variant="contained"
             color="error"
             startIcon={<Delete />}
-            onClick={async () => {
-              try {
-                setLoading(true);
-                await axiosApi.slips.delete(selectedSlip._id);
-                showNotification('success', 'Slip deleted successfully! Products restored to inventory and income updated.');
-                setOpenDeleteDialog(false);
-                setSelectedSlip(null);
-                await fetchAllSlips();
-              } catch (error) {
-                console.error('Delete error:', error);
-                const errorMsg = error.response?.data?.error || error.message || 'Failed to delete slip';
-                showNotification('error', errorMsg);
-              } finally {
-                setLoading(false);
-              }
-            }}
+            onClick={handleDeleteSlip}
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} /> : 'Delete Permanently'}
@@ -1032,7 +1351,7 @@ const SearchSlip = () => {
         <Alert
           severity={notification.severity}
           onClose={hideNotification}
-          sx={{ position: 'fixed', bottom: 16, right: 16, minWidth: 300 }}
+          sx={{ position: 'fixed', bottom: 16, right: 16, minWidth: 300, zIndex: 9999 }}
         >
           {notification.message}
         </Alert>

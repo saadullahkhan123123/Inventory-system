@@ -220,7 +220,7 @@ const Income = () => {
                       {income.productsSold?.length > 1 && ` +${income.productsSold.length - 1} more`}
                     </Typography>
                     <Typography variant="caption" display="block" color="textSecondary">
-                      {income.customerName || 'Walk-in Customer'}
+                      {income.customerName || 'Walk Customer'}
                     </Typography>
                     {income.slipNumber && (
                       <Typography variant="caption" display="block" color="primary" sx={{ mt: 0.5 }}>

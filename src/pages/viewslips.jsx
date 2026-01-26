@@ -107,8 +107,11 @@ const SlipPDFDocument = ({ slip }) => (
       <View style={styles.customerInfo}>
         <Text>Slip #: {slip.slipNumber || slip._id}</Text>
         <Text>Date: {new Date(slip.date || slip.createdAt).toLocaleString()}</Text>
-        <Text>Customer: {slip.customerName}</Text>
-        <Text>Phone: {slip.customerPhone}</Text>
+        <Text>Customer: {slip.customerName || 'Walk Customer'}</Text>
+        {slip.customerPhone && <Text>Phone: {slip.customerPhone}</Text>}
+        {(slip.paymentMethod === 'Cash' || slip.paymentMethod === 'Account') && (
+          <Text>Payment Method: {slip.paymentMethod}</Text>
+        )}
       </View>
 
       {/* Products Table */}
@@ -295,8 +298,9 @@ function SlipPage() {
           <div class="customer-info">
             <div><strong>Slip #:</strong> ${slip.slipNumber || slip._id}</div>
             <div><strong>Date:</strong> ${new Date(slip.date || slip.createdAt).toLocaleString()}</div>
-            <div><strong>Customer:</strong> ${slip.customerName}</div>
-            <div><strong>Phone:</strong> ${slip.customerPhone}</div>
+            <div><strong>Customer:</strong> ${slip.customerName || 'Walk Customer'}</div>
+            ${slip.customerPhone ? `<div><strong>Phone:</strong> ${slip.customerPhone}</div>` : ''}
+            ${(slip.paymentMethod === 'Cash' || slip.paymentMethod === 'Account') ? `<div><strong>Payment Method:</strong> ${slip.paymentMethod}</div>` : ''}
           </div>
           
           <table>
@@ -505,14 +509,18 @@ function SlipPage() {
             <strong>Date:</strong> {new Date(slip.date || slip.createdAt).toLocaleString()}
           </Typography>
           <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
-            <strong>Customer:</strong> {slip.customerName}
+            <strong>Customer:</strong> {slip.customerName || 'Walk Customer'}
           </Typography>
-          <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
-            <strong>Phone:</strong> {slip.customerPhone || 'N/A'}
-          </Typography>
-          <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
-            <strong>Payment Method:</strong> {slip.paymentMethod || 'Cash'}
-          </Typography>
+          {slip.customerPhone && (
+            <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
+              <strong>Phone:</strong> {slip.customerPhone}
+            </Typography>
+          )}
+          {(slip.paymentMethod === 'Cash' || slip.paymentMethod === 'Account') && (
+            <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
+              <strong>Payment Method:</strong> {slip.paymentMethod}
+            </Typography>
+          )}
           {slip.status && (
             <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
               <strong>Status:</strong> {slip.status}
