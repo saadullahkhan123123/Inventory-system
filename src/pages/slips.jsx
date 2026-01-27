@@ -1488,9 +1488,9 @@ const Slips = () => {
                         Discount:
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                        -Rs {((formData.discount || 0) + formData.items.reduce((sum, item) => {
+                        -Rs {(parseFloat(formData.discount || 0) + formData.items.reduce((sum, item) => {
                           const pricing = calculateItemPricing(item);
-                          return sum + pricing.discountAmount;
+                          return sum + (pricing.discountAmount || 0);
                         }, 0)).toFixed(2)}
                       </Typography>
                     </Box>

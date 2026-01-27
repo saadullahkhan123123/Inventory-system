@@ -140,154 +140,64 @@ export default function Inventory() {
     return 'In Stock';
   };
 
-  // Handle edit click
+  // Handle edit click - Only load quantity and price for editing
   const handleEditClick = (item) => {
     setSelectedItem(item);
     setEditForm({
-      name: item.name || '',
-      sku: item.sku || '',
-      productType: item.productType || 'Cover',
-      coverType: item.coverType || '',
-      plateCompany: item.plateCompany || '',
-      bikeName: item.bikeName || '',
-      plateType: item.plateType || '',
-      formCompany: item.formCompany || '',
-      formType: item.formType || '',
-      formVariant: item.formVariant || '',
-      category: item.category || 'General',
-      subcategory: item.subcategory || '',
-      company: item.company || '',
       quantity: item.quantity || 0,
-      price: item.price || 0,
-      basePrice: item.basePrice || item.price || 0,
-      description: item.description || '',
-      minStockLevel: item.minStockLevel || 10,
-      maxStockLevel: item.maxStockLevel || 1000,
-      costPrice: item.costPrice || 0
+      price: item.price || 0
     });
     setOpenEditDialog(true);
   };
 
-  // Handle form change
+  // Handle form change - Simple update for quantity and price only
   const handleFormChange = (field, value) => {
-    setEditForm(prev => {
-      const updated = { ...prev, [field]: value };
-      
-      // Clear dependent fields when productType changes
-      if (field === 'productType') {
-        if (value === 'Cover') {
-          updated.plateCompany = '';
-          updated.bikeName = '';
-          updated.plateType = '';
-          updated.formCompany = '';
-          updated.formType = '';
-          updated.formVariant = '';
-        } else if (value === 'Plate') {
-          updated.coverType = '';
-          updated.formCompany = '';
-          updated.formType = '';
-          updated.formVariant = '';
-        } else if (value === 'Form') {
-          updated.coverType = '';
-          updated.plateCompany = '';
-          updated.bikeName = '';
-          updated.plateType = '';
-        }
-      }
-      
-      // Auto-fill basePrice from price if basePrice is empty
-      if (field === 'price' && (!prev.basePrice || prev.basePrice === 0)) {
-        updated.basePrice = value || 0;
-      }
-      
-      return updated;
-    });
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  // Handle update
+  // Handle update - Only update quantity and price, preserve all other fields
   const handleUpdate = async () => {
     try {
       setUpdating(true);
 
       // Validation
-      if (!editForm.price || editForm.price < 0) {
-        showNotification('error', 'Valid price is required');
+      const quantity = parseInt(editForm.quantity) || 0;
+      const price = parseFloat(editForm.price) || 0;
+
+      if (price < 0) {
+        showNotification('error', 'Price cannot be negative');
         return;
       }
-      if (editForm.quantity < 0) {
+      if (quantity < 0) {
         showNotification('error', 'Quantity cannot be negative');
         return;
       }
 
-      // Product type specific validation
-      if (editForm.productType === 'Cover' && !editForm.coverType) {
-        showNotification('error', 'Cover Type is required for Cover products');
-        return;
-      }
-
-      if (editForm.productType === 'Plate') {
-        if (editForm.bikeName === 'Plastic Plate') {
-          // Plastic Plate is standalone
-        } else {
-          if (!editForm.bikeName) {
-            showNotification('error', 'Bike Name is required for Plate products');
-            return;
-          }
-          if (!editForm.plateType) {
-            showNotification('error', 'Plate Type is required for Plate products');
-            return;
-          }
-          if (editForm.bikeName === '70' && !editForm.plateCompany) {
-            showNotification('error', 'Company is required for Bike 70');
-            return;
-          }
-          if (!isValidPlateCombination(editForm.bikeName, editForm.plateCompany, editForm.plateType)) {
-            showNotification('error', 'Invalid Plate combination');
-            return;
-          }
-        }
-      }
-
-      if (editForm.productType === 'Form') {
-        if (!editForm.formCompany) {
-          showNotification('error', 'Company is required for Form products');
-          return;
-        }
-        if (!editForm.formType) {
-          showNotification('error', 'Form Type is required for Form products');
-          return;
-        }
-        if (!editForm.formVariant) {
-          showNotification('error', 'Form Variant is required for Form products');
-          return;
-        }
-        if (!isValidFormCombination(editForm.formCompany, editForm.formType, editForm.formVariant, editForm.bikeName)) {
-          showNotification('error', 'Invalid Form combination');
-          return;
-        }
-      }
-
+      // Update only quantity and price, preserve all other fields from selectedItem
       const updateData = {
-        name: editForm.name.trim(),
-        sku: editForm.sku.trim().toUpperCase(),
-        productType: editForm.productType,
-        coverType: editForm.productType === 'Cover' ? editForm.coverType : '',
-        plateCompany: editForm.productType === 'Plate' ? editForm.plateCompany : '',
-        bikeName: editForm.productType === 'Plate' ? editForm.bikeName : (editForm.productType === 'Form' ? editForm.bikeName : ''),
-        plateType: editForm.productType === 'Plate' ? editForm.plateType : '',
-        formCompany: editForm.productType === 'Form' ? editForm.formCompany : '',
-        formType: editForm.productType === 'Form' ? editForm.formType : '',
-        formVariant: editForm.productType === 'Form' ? editForm.formVariant : '',
-        category: editForm.category || 'General',
-        subcategory: editForm.subcategory || '',
-        company: editForm.company || '',
-        quantity: parseInt(editForm.quantity) || 0,
-        price: parseFloat(editForm.price) || 0,
-        basePrice: parseFloat(editForm.basePrice) || parseFloat(editForm.price) || 0,
-        description: editForm.description.trim() || '',
-        minStockLevel: parseInt(editForm.minStockLevel) || 10,
-        maxStockLevel: parseInt(editForm.maxStockLevel) || 1000,
-        costPrice: parseFloat(editForm.costPrice) || 0
+        name: selectedItem.name || '',
+        sku: selectedItem.sku || '',
+        productType: selectedItem.productType || 'Cover',
+        coverType: selectedItem.coverType || '',
+        plateCompany: selectedItem.plateCompany || '',
+        bikeName: selectedItem.bikeName || '',
+        plateType: selectedItem.plateType || '',
+        formCompany: selectedItem.formCompany || '',
+        formType: selectedItem.formType || '',
+        formVariant: selectedItem.formVariant || '',
+        category: selectedItem.category || 'General',
+        subcategory: selectedItem.subcategory || '',
+        company: selectedItem.company || '',
+        quantity: quantity,
+        price: price,
+        basePrice: selectedItem.basePrice || price,
+        description: selectedItem.description || '',
+        minStockLevel: selectedItem.minStockLevel || 10,
+        maxStockLevel: selectedItem.maxStockLevel || 1000,
+        costPrice: selectedItem.costPrice || 0
       };
 
       await axiosApi.items.update(selectedItem._id, updateData);
@@ -662,266 +572,26 @@ export default function Inventory() {
           Edit Item - {selectedItem?.name || 'Unnamed Item'}
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
-          <Grid container spacing={2}>
-            {/* Basic Info */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Item Name"
-                value={editForm.name || ''}
-                onChange={(e) => handleFormChange('name', e.target.value)}
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="SKU"
-                value={editForm.sku || ''}
-                onChange={(e) => handleFormChange('sku', e.target.value.toUpperCase())}
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-
-            {/* Product Type */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                <InputLabel>Product Type *</InputLabel>
-                <Select
-                  value={editForm.productType || 'Cover'}
-                  onChange={(e) => handleFormChange('productType', e.target.value)}
-                  label="Product Type *"
-                >
-                  <MenuItem value="Cover">Cover</MenuItem>
-                  <MenuItem value="Form">Form</MenuItem>
-                  <MenuItem value="Plate">Plate</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Cover Type */}
-            {editForm.productType === 'Cover' && (
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Cover Type *</InputLabel>
-                  <Select
-                    value={editForm.coverType || ''}
-                    onChange={(e) => handleFormChange('coverType', e.target.value)}
-                    label="Cover Type *"
-                  >
-                    <MenuItem value="">Select Cover Type</MenuItem>
-                    {coverTypes.map(type => (
-                      <MenuItem key={type} value={type}>{type}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            )}
-
-            {/* Plate Fields */}
-            {editForm.productType === 'Plate' && (
+          {/* Item Name Display (Read-only) */}
+          <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              Item Name
+            </Typography>
+            <Typography variant="h6" fontWeight="bold">
+              {selectedItem?.name || 'Unnamed Item'}
+            </Typography>
+            {selectedItem?.sku && (
               <>
-                <Grid item xs={12} sm={4}>
-                  <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                    <InputLabel>Bike Name</InputLabel>
-                    <Select
-                      value={editForm.bikeName || ''}
-                      onChange={(e) => handleFormChange('bikeName', e.target.value)}
-                      label="Bike Name"
-                    >
-                      <MenuItem value="">Select Bike</MenuItem>
-                      {PLATE_BIKES.map(bike => (
-                        <MenuItem key={bike} value={bike}>{bike}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                {editForm.bikeName && editForm.bikeName !== 'Plastic Plate' && (
-                  <>
-                    {editForm.bikeName === '70' && (
-                      <Grid item xs={12} sm={4}>
-                        <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                          <InputLabel>Company *</InputLabel>
-                          <Select
-                            value={editForm.plateCompany || ''}
-                            onChange={(e) => handleFormChange('plateCompany', e.target.value)}
-                            label="Company *"
-                          >
-                            <MenuItem value="">Select Company</MenuItem>
-                            {PLATE_COMPANIES.map(company => (
-                              <MenuItem key={company} value={company}>{company}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                    )}
-                    <Grid item xs={12} sm={4}>
-                      <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                        <InputLabel>Plate Type *</InputLabel>
-                        <Select
-                          value={editForm.plateType || ''}
-                          onChange={(e) => handleFormChange('plateType', e.target.value)}
-                          label="Plate Type *"
-                          disabled={!editForm.bikeName || (editForm.bikeName === '70' && !editForm.plateCompany)}
-                        >
-                          <MenuItem value="">Select Plate Type</MenuItem>
-                          {getPlateTypesForBikeAndCompany(editForm.bikeName, editForm.plateCompany).map(type => (
-                            <MenuItem key={type} value={type}>{type}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                  </>
-                )}
+                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                  SKU: {selectedItem.sku}
+                </Typography>
               </>
             )}
+          </Box>
 
-            {/* Form Fields */}
-            {editForm.productType === 'Form' && (
-              <>
-                <Grid item xs={12} sm={4}>
-                  <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                    <InputLabel>Company *</InputLabel>
-                    <Select
-                      value={editForm.formCompany || ''}
-                      onChange={(e) => handleFormChange('formCompany', e.target.value)}
-                      label="Company *"
-                    >
-                      <MenuItem value="">Select Company</MenuItem>
-                      {FORM_COMPANIES.map(company => (
-                        <MenuItem key={company} value={company}>{company}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                {editForm.formCompany && (
-                  <Grid item xs={12} sm={4}>
-                    <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                      <InputLabel>Form Type *</InputLabel>
-                      <Select
-                        value={editForm.formType || ''}
-                        onChange={(e) => handleFormChange('formType', e.target.value)}
-                        label="Form Type *"
-                      >
-                        <MenuItem value="">Select Form Type</MenuItem>
-                        {getFormTypesForCompany(editForm.formCompany).map(type => (
-                          <MenuItem key={type} value={type}>{type}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                )}
-                {editForm.formCompany && editForm.formType && (
-                  <Grid item xs={12} sm={4}>
-                    <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                      <InputLabel>Form Variant *</InputLabel>
-                      <Select
-                        value={editForm.formVariant || ''}
-                        onChange={(e) => handleFormChange('formVariant', e.target.value)}
-                        label="Form Variant *"
-                      >
-                        <MenuItem value="">Select Variant</MenuItem>
-                        {getVariantsForCompanyAndType(editForm.formCompany, editForm.formType).map(variant => (
-                          <MenuItem key={variant} value={variant}>{variant}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                )}
-                {editForm.formCompany && editForm.formType && editForm.formVariant && 
-                 getBikesForVariant(editForm.formCompany, editForm.formType, editForm.formVariant).length < FORM_BIKES.length && (
-                  <Grid item xs={12} sm={4}>
-                    <FormControl fullWidth required size={isMobile ? 'small' : 'medium'}>
-                      <InputLabel>Bike Name *</InputLabel>
-                      <Select
-                        value={editForm.bikeName || ''}
-                        onChange={(e) => handleFormChange('bikeName', e.target.value)}
-                        label="Bike Name *"
-                      >
-                        <MenuItem value="">Select Bike</MenuItem>
-                        {getBikesForVariant(editForm.formCompany, editForm.formType, editForm.formVariant).map(bike => (
-                          <MenuItem key={bike} value={bike}>{bike}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                )}
-              </>
-            )}
-
-            <Divider sx={{ my: 2, width: '100%' }} />
-
-            {/* Category and Company */}
+          <Grid container spacing={3}>
+            {/* Quantity */}
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Category"
-                value={editForm.category || ''}
-                onChange={(e) => handleFormChange('category', e.target.value)}
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Subcategory"
-                value={editForm.subcategory || ''}
-                onChange={(e) => handleFormChange('subcategory', e.target.value)}
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Company"
-                value={editForm.company || ''}
-                onChange={(e) => handleFormChange('company', e.target.value)}
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-
-            <Divider sx={{ my: 2, width: '100%' }} />
-
-            {/* Pricing */}
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Price *"
-                value={editForm.price || 0}
-                onChange={(e) => handleFormChange('price', e.target.value)}
-                inputProps={{ min: 0, step: 0.01 }}
-                size={isMobile ? 'small' : 'medium'}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Base Price"
-                value={editForm.basePrice || 0}
-                onChange={(e) => handleFormChange('basePrice', e.target.value)}
-                inputProps={{ min: 0, step: 0.01 }}
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Cost Price"
-                value={editForm.costPrice || 0}
-                onChange={(e) => handleFormChange('costPrice', e.target.value)}
-                inputProps={{ min: 0, step: 0.01 }}
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-
-            <Divider sx={{ my: 2, width: '100%' }} />
-
-            {/* Stock */}
-            <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
                 type="number"
@@ -931,41 +601,30 @@ export default function Inventory() {
                 inputProps={{ min: 0 }}
                 size={isMobile ? 'small' : 'medium'}
                 required
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Min Stock Level"
-                value={editForm.minStockLevel || 10}
-                onChange={(e) => handleFormChange('minStockLevel', e.target.value)}
-                inputProps={{ min: 0 }}
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Max Stock Level"
-                value={editForm.maxStockLevel || 1000}
-                onChange={(e) => handleFormChange('maxStockLevel', e.target.value)}
-                inputProps={{ min: 0 }}
-                size={isMobile ? 'small' : 'medium'}
+                sx={{
+                  '& .MuiInputBase-root': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' }
+                  }
+                }}
               />
             </Grid>
 
-            {/* Description */}
-            <Grid item xs={12}>
+            {/* Price */}
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Description"
-                value={editForm.description || ''}
-                onChange={(e) => handleFormChange('description', e.target.value)}
-                multiline
-                rows={3}
+                type="number"
+                label="Price *"
+                value={editForm.price || 0}
+                onChange={(e) => handleFormChange('price', e.target.value)}
+                inputProps={{ min: 0, step: 0.01 }}
                 size={isMobile ? 'small' : 'medium'}
+                required
+                sx={{
+                  '& .MuiInputBase-root': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' }
+                  }
+                }}
               />
             </Grid>
           </Grid>

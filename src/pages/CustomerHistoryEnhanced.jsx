@@ -31,7 +31,6 @@ const CustomerHistoryEnhanced = () => {
   const showNotification = useNotification();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('name'); // 'name', 'phone', 'id'
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [historyData, setHistoryData] = useState(null);
@@ -77,22 +76,19 @@ const CustomerHistoryEnhanced = () => {
 
     try {
       const params = {
-        searchType,
+        searchType: 'name',
         ...(selectedMonth && selectedYear && { month: selectedMonth, year: selectedYear }),
         ...(startDate && { startDate: startDate.toISOString().split('T')[0] }),
         ...(endDate && { endDate: endDate.toISOString().split('T')[0] })
       };
 
-      // Extract customer identifier from suggestion if it's an object
-      let customerIdentifier = searchQuery;
+      // Extract customer name from suggestion if it's an object
+      let customerName = searchQuery;
       if (typeof searchQuery === 'object' && searchQuery.value) {
-        customerIdentifier = searchQuery.value;
-        if (searchQuery.type) {
-          params.searchType = searchQuery.type;
-        }
+        customerName = searchQuery.value;
       }
 
-      const response = await axiosApi.customerHistory.getByCustomerName(customerIdentifier, params);
+      const response = await axiosApi.customerHistory.getByCustomerName(customerName, params);
       setHistoryData(response.data);
     } catch (err) {
       console.error('❌ Error fetching customer history:', err);
@@ -217,23 +213,9 @@ const CustomerHistoryEnhanced = () => {
             Customer History
           </Typography>
 
-          {/* Search Section */}
+          {/* Search Section - Only by Customer Name */}
           <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                <InputLabel>Search By</InputLabel>
-                <Select
-                  value={searchType}
-                  onChange={(e) => setSearchType(e.target.value)}
-                  label="Search By"
-                >
-                  <MenuItem value="name">Name</MenuItem>
-                  <MenuItem value="phone">Phone Number</MenuItem>
-                  <MenuItem value="id">Customer/Slip ID</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={10}>
               <Autocomplete
                 freeSolo
                 options={suggestions}
@@ -248,9 +230,6 @@ const CustomerHistoryEnhanced = () => {
                 onChange={(event, newValue) => {
                   if (newValue) {
                     setSearchQuery(newValue);
-                    if (newValue.type) {
-                      setSearchType(newValue.type);
-                    }
                   }
                 }}
                 getOptionLabel={(option) => {
@@ -260,8 +239,8 @@ const CustomerHistoryEnhanced = () => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label={`Search Customer ${searchType === 'name' ? 'Name' : searchType === 'phone' ? 'Phone' : 'ID'}`}
-                    placeholder={searchType === 'name' ? 'e.g., Ali' : searchType === 'phone' ? 'e.g., 03146074093' : 'e.g., SLIP-001'}
+                    label="Search by Customer Name"
+                    placeholder="e.g., Ali, Ahmed, etc."
                     fullWidth
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') handleSearch();

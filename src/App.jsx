@@ -14,7 +14,6 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Slips = lazy(() => import('./pages/slips'));
 const Income = lazy(() => import('./pages/icome'));
 const SearchSlip = lazy(() => import('./pages/searchSlip'));
-const SearchProducts = lazy(() => import('./pages/searchProducts'));
 const ViewSlips = lazy(() => import('./pages/viewslips'));
 const CustomerHistory = lazy(() => import('./pages/CustomerHistoryEnhanced'));
 
@@ -77,11 +76,6 @@ function AppRoutes() {
         <Route path="/search-slips" element={
           <PageWrapper>
             <SearchSlip />
-          </PageWrapper>
-        } />
-        <Route path="/search-products" element={
-          <PageWrapper>
-            <SearchProducts />
           </PageWrapper>
         } />
         <Route path="/customer-history" element={

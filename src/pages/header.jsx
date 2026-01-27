@@ -42,7 +42,7 @@ function Header() {
       return '/slippage';
     }
     
-    const validPaths = ['/inventory', '/additems', '/income', '/slips', '/slippage', '/search-slips', '/search-products', '/dashboard'];
+    const validPaths = ['/inventory', '/additems', '/income', '/slips', '/slippage', '/search-slips', '/dashboard'];
     if (validPaths.includes(path)) {
       return path;
     }
@@ -55,7 +55,6 @@ function Header() {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Inventory', path: '/inventory' },
-    { label: 'Search Products', path: '/search-products' },
     { label: 'Add Items', path: '/additems' },
     { label: 'Income', path: '/income' },
     { label: 'Create Slip', path: '/slips' },
