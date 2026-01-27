@@ -38,6 +38,7 @@ const Slips = () => {
   const [formData, setFormData] = useState({
     customerName: '',
     paymentMethod: 'Cash', // Cash, Udhar, Account
+    discount: 0,
     items: [{ 
       productType: 'Cover',
       coverType: '',
@@ -59,6 +60,7 @@ const Slips = () => {
       company: '' 
     }]
   });
+  const [customerBalance, setCustomerBalance] = useState({ previous: 0, current: 0 });
 
   // Cover types list
   const coverTypes = [
@@ -580,7 +582,7 @@ const Slips = () => {
       
       setFormData(prev => ({ ...prev, items: merged }));
     } else {
-      setFormData(prev => ({ ...prev, items: updatedItems }));
+    setFormData(prev => ({ ...prev, items: updatedItems }));
     }
   };
 
@@ -623,9 +625,48 @@ const Slips = () => {
       const pricing = calculateItemPricing(item);
       return sum + pricing.total;
     }, 0);
-    const totalAmount = subtotal;
-    return { subtotal, totalAmount };
+    const discount = parseFloat(formData.discount) || 0;
+    const totalAmount = Math.max(0, subtotal - discount);
+    return { subtotal, discount, totalAmount };
   };
+
+  // Fetch customer balance when Udhar is selected
+  useEffect(() => {
+    const fetchCustomerBalance = async () => {
+      if (formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer') {
+        try {
+          const response = await axiosApi.slips.getAll({ 
+            customerName: formData.customerName.trim(),
+            paymentMethod: 'Udhar'
+          });
+          const slips = response.data?.slips || response.data || [];
+          const previousBalance = slips
+            .filter(slip => slip.status !== 'Cancelled')
+            .reduce((sum, slip) => sum + (slip.totalAmount || 0) - (slip.discount || 0), 0);
+          
+          // Calculate current total
+          const subtotal = formData.items.reduce((sum, item) => {
+            const pricing = calculateItemPricing(item);
+            return sum + pricing.total;
+          }, 0);
+          const discount = parseFloat(formData.discount) || 0;
+          const totalAmount = Math.max(0, subtotal - discount);
+          
+          setCustomerBalance({
+            previous: previousBalance,
+            current: previousBalance + totalAmount
+          });
+        } catch (error) {
+          console.error('Error fetching customer balance:', error);
+          setCustomerBalance({ previous: 0, current: 0 });
+        }
+      } else {
+        setCustomerBalance({ previous: 0, current: 0 });
+      }
+    };
+    
+    fetchCustomerBalance();
+  }, [formData.paymentMethod, formData.customerName, formData.discount, formData.items]);
 
   // ✔ UPDATED VALIDATION
   const validateForm = () => {
@@ -739,7 +780,7 @@ const Slips = () => {
         };
       });
 
-      const { subtotal, totalAmount } = calculateTotals();
+      const { subtotal, discount, totalAmount } = calculateTotals();
 
       // ✔ UPDATED — ONLY SEND WHAT BACKEND ACCEPTS
       const slipData = {
@@ -747,6 +788,7 @@ const Slips = () => {
         paymentMethod: formData.paymentMethod || 'Cash',
         products: productsData,
         subtotal,
+        discount: discount || 0,
         totalAmount
       };
 
@@ -760,6 +802,7 @@ const Slips = () => {
       setFormData({
         customerName: '',
         paymentMethod: 'Cash',
+        discount: 0,
         items: [{ 
           productType: 'Cover',
           coverType: '',
@@ -781,6 +824,7 @@ const Slips = () => {
           discountType: 'none'
         }]
       });
+      setCustomerBalance({ previous: 0, current: 0 });
 
     } catch (err) {
       console.error('Slip creation error:', err);
@@ -883,6 +927,37 @@ const Slips = () => {
                 </FormControl>
               </Tooltip>
             </Grid>
+
+            {/* Discount Field */}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Discount (Rs)"
+                name="discount"
+                value={formData.discount || 0}
+                onChange={handleInputChange}
+                inputProps={{ min: 0, step: 0.01 }}
+                helperText="Enter discount amount in rupees"
+              />
+            </Grid>
+
+            {/* Customer Balance Display (for Udhar) */}
+            {formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer' && (
+              <Grid item xs={12}>
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  <Typography variant="body2" fontWeight="bold" gutterBottom>
+                    Customer Balance Information:
+                  </Typography>
+                  <Typography variant="body2">
+                    Previous Balance: <strong>Rs {customerBalance.previous.toFixed(2)}</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    Current Balance (after this slip): <strong>Rs {customerBalance.current.toFixed(2)}</strong>
+                  </Typography>
+                </Alert>
+              </Grid>
+            )}
 
             {/* Items */}
             <Grid item xs={12}>
@@ -1362,7 +1437,7 @@ const Slips = () => {
                             whiteSpace: 'nowrap'
                           }}>
                             {foundProduct?.name || productName}
-                          </Typography>
+                        </Typography>
                           <Typography variant="caption" sx={{ 
                             fontSize: { xs: '0.65rem', sm: '0.75rem' },
                             opacity: 0.8
@@ -1375,7 +1450,7 @@ const Slips = () => {
                             fontSize: { xs: '0.875rem', sm: '1rem' },
                             fontWeight: 'bold'
                           }}>
-                            Rs {pricing.total.toFixed(2)}
+                          Rs {pricing.total.toFixed(2)}
                           </Typography>
                           {pricing.discountAmount > 0 && (
                             <Typography variant="caption" sx={{ 
@@ -1385,7 +1460,7 @@ const Slips = () => {
                               mt: 0.25
                             }}>
                               -Rs {pricing.discountAmount.toFixed(2)}
-                            </Typography>
+                        </Typography>
                           )}
                         </Box>
                       </Box>
@@ -1404,31 +1479,51 @@ const Slips = () => {
                       Rs {subtotal.toFixed(2)}
                     </Typography>
                   </Box>
-                  {formData.items.some(item => {
+                  {(formData.discount > 0 || formData.items.some(item => {
                     const pricing = calculateItemPricing(item);
                     return pricing.discountAmount > 0;
-                  }) && (
+                  })) && (
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                        Total Discount:
+                        Discount:
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                        -Rs {formData.items.reduce((sum, item) => {
+                        -Rs {((formData.discount || 0) + formData.items.reduce((sum, item) => {
                           const pricing = calculateItemPricing(item);
                           return sum + pricing.discountAmount;
-                        }, 0).toFixed(2)}
+                        }, 0)).toFixed(2)}
+                      </Typography>
+                    </Box>
+                  )}
+                  {formData.paymentMethod === 'Udhar' && customerBalance.previous > 0 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                        Previous Balance:
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                        Rs {customerBalance.previous.toFixed(2)}
                       </Typography>
                     </Box>
                   )}
                   <Divider sx={{ my: 1.5, bgcolor: 'rgba(255,255,255,0.3)' }} />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: formData.paymentMethod === 'Udhar' ? 1 : 0 }}>
                     <Typography variant="h6" sx={{ opacity: 0.9, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                      Total Amount
+                      Payable Amount:
                     </Typography>
                     <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                       Rs {totalAmount.toFixed(2)}
                     </Typography>
                   </Box>
+                  {formData.paymentMethod === 'Udhar' && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                      <Typography variant="body1" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 'bold' }}>
+                        Current Balance:
+                      </Typography>
+                      <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, color: 'warning.main' }}>
+                        Rs {customerBalance.current.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Card>
             </Grid>

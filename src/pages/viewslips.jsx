@@ -135,9 +135,18 @@ const SlipPDFDocument = ({ slip }) => (
       {/* Totals */}
       <View style={styles.totals}>
         <Text>Subtotal: Rs {slip.subtotal?.toLocaleString()}</Text>
-        <Text>Tax: Rs {slip.tax?.toLocaleString()}</Text>
-        <Text>Discount: Rs {slip.discount?.toLocaleString()}</Text>
-        <Text style={styles.totalAmount}>Total: Rs {slip.totalAmount?.toLocaleString()}</Text>
+        {slip.discount > 0 && (
+          <Text>Discount: -Rs {slip.discount?.toLocaleString()}</Text>
+        )}
+        <Text style={styles.totalAmount}>Payable Amount: Rs {slip.totalAmount?.toLocaleString()}</Text>
+        {slip.paymentMethod === 'Udhar' && slip.previousBalance > 0 && (
+          <>
+            <Text>Previous Balance: Rs {slip.previousBalance?.toLocaleString()}</Text>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#ff9800' }}>
+              Current Balance: Rs {slip.currentBalance?.toLocaleString()}
+            </Text>
+          </>
+        )}
       </View>
 
       {/* Footer */}
@@ -349,9 +358,12 @@ function SlipPage() {
           
           <div class="totals">
             <div><strong>Subtotal:</strong> Rs ${slip.subtotal?.toLocaleString()}</div>
-            <div><strong>Tax:</strong> Rs ${slip.tax?.toLocaleString()}</div>
-            <div><strong>Discount:</strong> Rs ${slip.discount?.toLocaleString()}</div>
-            <div class="total-amount"><strong>Total:</strong> Rs ${slip.totalAmount?.toLocaleString()}</div>
+            ${slip.discount > 0 ? `<div><strong>Discount:</strong> -Rs ${slip.discount?.toLocaleString()}</div>` : ''}
+            <div class="total-amount"><strong>Payable Amount:</strong> Rs ${slip.totalAmount?.toLocaleString()}</div>
+            ${slip.paymentMethod === 'Udhar' && slip.previousBalance > 0 ? `
+              <div><strong>Previous Balance:</strong> Rs ${slip.previousBalance?.toLocaleString()}</div>
+              <div style="font-size: 18px; font-weight: bold; color: #ff9800;"><strong>Current Balance:</strong> Rs ${slip.currentBalance?.toLocaleString()}</div>
+            ` : ''}
           </div>
           
           <div class="footer">
@@ -684,20 +696,35 @@ function SlipPage() {
           }}>
             <strong>Subtotal:</strong> Rs {slip.subtotal?.toLocaleString()}
           </Typography>
-          <Typography sx={{ 
-            mb: 1,
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-          }}>
-            <strong>Tax:</strong> Rs {(slip.tax || 0).toLocaleString()}
-          </Typography>
-          <Typography sx={{ 
-            mb: 1,
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-          }}>
-            <strong>Discount:</strong> Rs {(slip.discount || 0).toLocaleString()}
-          </Typography>
+          {slip.discount > 0 && (
+            <Typography sx={{ 
+              mb: 1,
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+            }}>
+              <strong>Discount:</strong> -Rs {(slip.discount || 0).toLocaleString()}
+            </Typography>
+          )}
+          {slip.paymentMethod === 'Udhar' && slip.previousBalance > 0 && (
+            <>
+              <Typography sx={{ 
+                mb: 1,
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+              }}>
+                <strong>Previous Balance:</strong> Rs {(slip.previousBalance || 0).toLocaleString()}
+              </Typography>
+              <Typography sx={{ 
+                mb: 1,
+                fontSize: { xs: '1rem', sm: '1.125rem' },
+                fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+                color: 'warning.main',
+                fontWeight: 'bold'
+              }}>
+                <strong>Current Balance:</strong> Rs {(slip.currentBalance || 0).toLocaleString()}
+              </Typography>
+            </>
+          )}
           <Typography variant="h5" sx={{ 
             mt: { xs: 1, sm: 2 },
             color: 'success.main',
@@ -708,7 +735,7 @@ function SlipPage() {
               color: '#000'
             }
           }}>
-            <strong>Total: Rs {slip.totalAmount?.toLocaleString()}</strong>
+            <strong>Payable Amount: Rs {slip.totalAmount?.toLocaleString()}</strong>
           </Typography>
         </Box>
 
