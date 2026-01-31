@@ -253,18 +253,26 @@ const AddItems = () => {
       console.error('Error response data:', error.response?.data);
       console.error('Error message:', error.message);
       
-      let errorMessage = 'Failed to add item. Please try again.';
+      // Use enhanced error message if available
+      let errorMessage = error.userMessage || 'Failed to add item. Please try again.';
       
-      if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
-        errorMessage = 'Cannot connect to server. Please make sure your backend server is running.';
+      // Special handling for 503 errors
+      if (error.response?.status === 503) {
+        if (error.response?.data?.error === 'Database connection unavailable') {
+          errorMessage = 'Database is temporarily unavailable. The system will retry automatically. Please wait a moment and try again.';
+        } else {
+          errorMessage = 'Service is temporarily unavailable. Please wait a moment and try again.';
+        }
+      } else if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection and try again.';
       } else if (error.response) {
         // Show the actual error message from backend
         const backendError = error.response.data?.error || error.response.data?.message || error.response.statusText;
-        errorMessage = `Server error: ${error.response.status} - ${backendError}`;
+        errorMessage = backendError || `Server error: ${error.response.status}`;
         console.error('Backend error message:', backendError);
         console.error('Full error data:', JSON.stringify(error.response.data, null, 2));
       } else if (error.message) {
-        errorMessage = `Error: ${error.message}`;
+        errorMessage = error.message;
       }
       
       showNotification('error', errorMessage);

@@ -183,13 +183,24 @@ function SlipPage() {
       } catch (error) {
         console.error('Error fetching slip:', error);
         console.error('Error details:', error.response?.data);
-        const errorMsg = error.response?.data?.error || error.message || 'Failed to load slip data';
-        const errorDetails = error.code === 'ECONNABORTED' 
-          ? 'Request timeout - backend may be slow or unreachable'
-          : error.message === 'Network Error'
-          ? 'Network error - check if backend is running'
-          : errorMsg;
-        setError(`Failed to load slip data: ${errorDetails}`);
+        
+        // Use enhanced error message if available
+        let errorMsg = error.userMessage || error.response?.data?.error || error.message || 'Failed to load slip data';
+        
+        // Special handling for 503 errors
+        if (error.response?.status === 503) {
+          if (error.response?.data?.error === 'Database connection unavailable') {
+            errorMsg = 'Database is temporarily unavailable. The system is retrying automatically. Please wait a moment and refresh.';
+          } else {
+            errorMsg = 'Service is temporarily unavailable. Please wait a moment and try again.';
+          }
+        } else if (error.code === 'ECONNABORTED') {
+          errorMsg = 'Request timeout - backend may be slow or unreachable. Please try again.';
+        } else if (error.message === 'Network Error') {
+          errorMsg = 'Network error - please check your internet connection.';
+        }
+        
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }

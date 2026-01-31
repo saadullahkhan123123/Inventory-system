@@ -84,9 +84,19 @@ export default function Inventory() {
       setCategories(response.data?.categories || []);
     } catch (err) {
       console.error('Error fetching items:', err);
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to load inventory items';
-      setError(`Failed to load inventory items: ${errorMsg}`);
-      showNotification('error', `Failed to load inventory items: ${errorMsg}`);
+      
+      // Use enhanced error message if available
+      let errorMsg = err.userMessage || err.response?.data?.error || err.message || 'Failed to load inventory items';
+      
+      // Special handling for 503 errors
+      if (err.response?.status === 503) {
+        errorMsg = err.response?.data?.error === 'Database connection unavailable' 
+          ? 'Database is temporarily unavailable. The system is retrying automatically. Please wait a moment and refresh.'
+          : 'Service is temporarily unavailable. Please wait a moment and try again.';
+      }
+      
+      setError(errorMsg);
+      showNotification('error', errorMsg);
     } finally {
       setLoading(false);
     }

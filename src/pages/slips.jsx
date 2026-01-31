@@ -106,13 +106,24 @@ const Slips = () => {
         setCategories(uniqueCategories);
       } catch (error) {
         console.error('Error fetching products:', error);
-        const errorMsg = error.response?.data?.error || error.message || 'Failed to load products';
-        const errorDetails = error.code === 'ECONNABORTED' 
-          ? 'Request timeout - backend may be slow or unreachable'
-          : error.message === 'Network Error'
-          ? 'Network error - check if backend is running'
-          : errorMsg;
-        showNotification('error', `Failed to load products: ${errorDetails}`);
+        
+        // Use enhanced error message if available
+        let errorMsg = error.userMessage || error.response?.data?.error || error.message || 'Failed to load products';
+        
+        // Special handling for 503 errors
+        if (error.response?.status === 503) {
+          if (error.response?.data?.error === 'Database connection unavailable') {
+            errorMsg = 'Database is temporarily unavailable. The system is retrying automatically. Please wait a moment and refresh.';
+          } else {
+            errorMsg = 'Service is temporarily unavailable. Please wait a moment and try again.';
+          }
+        } else if (error.code === 'ECONNABORTED') {
+          errorMsg = 'Request timeout - backend may be slow or unreachable. Please try again.';
+        } else if (error.message === 'Network Error') {
+          errorMsg = 'Network error - please check your internet connection.';
+        }
+        
+        showNotification('error', errorMsg);
       } finally {
         setLoading(prev => ({ ...prev, products: false }));
       }

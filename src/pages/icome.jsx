@@ -119,8 +119,24 @@ const Income = () => {
 
     } catch (err) {
       console.error('Error fetching data:', err);
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch data';
-      showNotification("error", `Failed to fetch data: ${errorMsg}`);
+      
+      // Use enhanced error message if available
+      let errorMsg = err.userMessage || err.response?.data?.error || err.message || 'Failed to fetch data';
+      
+      // Special handling for 503 errors
+      if (err.response?.status === 503) {
+        if (err.response?.data?.error === 'Database connection unavailable') {
+          errorMsg = 'Database is temporarily unavailable. The system is retrying automatically. Please wait a moment and refresh.';
+        } else {
+          errorMsg = 'Service is temporarily unavailable. Please wait a moment and try again.';
+        }
+      } else if (err.code === 'ECONNABORTED') {
+        errorMsg = 'Request timeout - backend may be slow or unreachable. Please try again.';
+      } else if (err.message === 'Network Error') {
+        errorMsg = 'Network error - please check your internet connection.';
+      }
+      
+      showNotification("error", errorMsg);
     } finally {
       setLoading({ income: false, exporting: false });
     }

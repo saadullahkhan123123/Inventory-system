@@ -26,19 +26,42 @@ axiosApi.interceptors.request.use(
   }
 );
 
-// Enhanced response interceptor
+// Retry configuration for 503 errors
+const MAX_RETRIES = 3;
+const RETRY_DELAY_BASE = 1000; // Base delay in milliseconds
+
+// Helper function to delay execution
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to check if error should be retried
+const shouldRetry = (error, retryCount) => {
+  // Only retry 503 errors (Service Unavailable) and network errors
+  const is503 = error.response?.status === 503;
+  const isNetworkError = error.code === 'ECONNABORTED' || error.message === 'Network Error';
+  const isConnectionError = error.code === 'ERR_BAD_RESPONSE' && error.response?.status === 503;
+  
+  return (is503 || isNetworkError || isConnectionError) && retryCount < MAX_RETRIES;
+};
+
+// Enhanced response interceptor with retry logic
 axiosApi.interceptors.response.use(
   (response) => {
     console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - Success`);
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Check if this request has already been retried
+    const retryCount = originalRequest._retryCount || 0;
+    
     console.error('❌ API Error Details:');
     console.error('URL:', error.config?.baseURL + error.config?.url);
     console.error('Method:', error.config?.method?.toUpperCase());
     console.error('Status:', error.response?.status);
     console.error('Data:', error.response?.data);
     console.error('Message:', error.message);
+    console.error('Retry Count:', retryCount);
     
     // Handle specific error cases
     if (error.code === 'ECONNABORTED') {
@@ -46,6 +69,38 @@ axiosApi.interceptors.response.use(
     }
     if (error.message === 'Network Error') {
       console.error('🌐 Network error - check CORS or server availability');
+    }
+    
+    // Retry logic for 503 errors (Database connection unavailable)
+    if (shouldRetry(error, retryCount)) {
+      originalRequest._retryCount = retryCount + 1;
+      
+      // Calculate exponential backoff delay
+      const delayMs = RETRY_DELAY_BASE * Math.pow(2, retryCount);
+      
+      console.log(`🔄 Retrying request (attempt ${retryCount + 1}/${MAX_RETRIES}) after ${delayMs}ms...`);
+      
+      // Wait before retrying
+      await delay(delayMs);
+      
+      // Retry the request
+      return axiosApi(originalRequest);
+    }
+    
+    // If we've exhausted retries or it's not a retryable error, enhance error message
+    if (error.response?.status === 503) {
+      const errorData = error.response.data;
+      if (errorData?.error === 'Database connection unavailable') {
+        error.userMessage = 'Database is temporarily unavailable. Please wait a moment and try again.';
+      } else {
+        error.userMessage = 'Service is temporarily unavailable. Please try again in a moment.';
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      error.userMessage = 'Request timed out. Please check your connection and try again.';
+    } else if (error.message === 'Network Error') {
+      error.userMessage = 'Network error. Please check your internet connection.';
+    } else {
+      error.userMessage = error.response?.data?.error || error.message || 'An unexpected error occurred.';
     }
     
     return Promise.reject(error);

@@ -62,8 +62,24 @@ const SearchSlip = () => {
       setAllSlips(slipsArray);
     } catch (error) {
       console.error('Error fetching slips:', error);
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to load slips';
-      showNotification('error', `Failed to load slips: ${errorMsg}`);
+      
+      // Use enhanced error message if available
+      let errorMsg = error.userMessage || error.response?.data?.error || error.message || 'Failed to load slips';
+      
+      // Special handling for 503 errors
+      if (error.response?.status === 503) {
+        if (error.response?.data?.error === 'Database connection unavailable') {
+          errorMsg = 'Database is temporarily unavailable. The system is retrying automatically. Please wait a moment and refresh.';
+        } else {
+          errorMsg = 'Service is temporarily unavailable. Please wait a moment and try again.';
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        errorMsg = 'Request timeout - backend may be slow or unreachable. Please try again.';
+      } else if (error.message === 'Network Error') {
+        errorMsg = 'Network error - please check your internet connection.';
+      }
+      
+      showNotification('error', errorMsg);
       setAllSlips([]);
     } finally {
       setLoading(false);
@@ -91,7 +107,23 @@ const SearchSlip = () => {
       await fetchAllSlips();
     } catch (error) {
       console.error('Delete error:', error);
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to delete slip';
+      
+      // Use enhanced error message if available
+      let errorMsg = error.userMessage || error.response?.data?.error || error.message || 'Failed to delete slip';
+      
+      // Special handling for 503 errors
+      if (error.response?.status === 503) {
+        if (error.response?.data?.error === 'Database connection unavailable') {
+          errorMsg = 'Database is temporarily unavailable. Please wait a moment and try again.';
+        } else {
+          errorMsg = 'Service is temporarily unavailable. Please wait a moment and try again.';
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        errorMsg = 'Request timeout - please try again.';
+      } else if (error.message === 'Network Error') {
+        errorMsg = 'Network error - please check your internet connection.';
+      }
+      
       showNotification('error', errorMsg);
     } finally {
       setLoading(false);
