@@ -39,6 +39,7 @@ const Slips = () => {
     customerName: '',
     paymentMethod: 'Cash', // Cash, Udhar, Account
     discount: 0,
+    partialPayment: 0, // Amount customer pays now (for Udhar)
     items: [{ 
       productType: 'Cover',
       coverType: '',
@@ -60,7 +61,7 @@ const Slips = () => {
       company: '' 
     }]
   });
-  const [customerBalance, setCustomerBalance] = useState({ previous: 0, current: 0 });
+  const [customerBalance, setCustomerBalance] = useState({ previous: 0, current: 0, remaining: 0 });
 
   // Cover types list
   const coverTypes = [
@@ -640,9 +641,14 @@ const Slips = () => {
             paymentMethod: 'Udhar'
           });
           const slips = response.data?.slips || response.data || [];
+          // Calculate previous balance: sum of all unpaid amounts (totalAmount - discount - partialPayment)
           const previousBalance = slips
             .filter(slip => slip.status !== 'Cancelled')
-            .reduce((sum, slip) => sum + (slip.totalAmount || 0) - (slip.discount || 0), 0);
+            .reduce((sum, slip) => {
+              const slipTotal = (slip.totalAmount || 0) - (slip.discount || 0);
+              const partialPaid = slip.partialPayment || 0;
+              return sum + (slipTotal - partialPaid);
+            }, 0);
           
           // Calculate current total
           const subtotal = formData.items.reduce((sum, item) => {
@@ -652,21 +658,30 @@ const Slips = () => {
           const discount = parseFloat(formData.discount) || 0;
           const totalAmount = Math.max(0, subtotal - discount);
           
+          // Calculate partial payment and remaining balance
+          const partialPayment = parseFloat(formData.partialPayment) || 0;
+          const remainingBalance = Math.max(0, totalAmount - partialPayment);
+          
           setCustomerBalance({
             previous: previousBalance,
-            current: previousBalance + totalAmount
+            current: previousBalance + totalAmount,
+            remaining: previousBalance + remainingBalance
           });
         } catch (error) {
           console.error('Error fetching customer balance:', error);
-          setCustomerBalance({ previous: 0, current: 0 });
+          setCustomerBalance({ previous: 0, current: 0, remaining: 0 });
         }
       } else {
-        setCustomerBalance({ previous: 0, current: 0 });
+        setCustomerBalance({ previous: 0, current: 0, remaining: 0 });
+        // Reset partial payment when not Udhar
+        if (formData.paymentMethod !== 'Udhar') {
+          setFormData(prev => ({ ...prev, partialPayment: 0 }));
+        }
       }
     };
     
     fetchCustomerBalance();
-  }, [formData.paymentMethod, formData.customerName, formData.discount, formData.items]);
+  }, [formData.paymentMethod, formData.customerName, formData.discount, formData.items, formData.partialPayment]);
 
   // ✔ UPDATED VALIDATION
   const validateForm = () => {
@@ -789,7 +804,8 @@ const Slips = () => {
         products: productsData,
         subtotal,
         discount: discount || 0,
-        totalAmount
+        totalAmount,
+        partialPayment: formData.paymentMethod === 'Udhar' ? (parseFloat(formData.partialPayment) || 0) : 0
       };
 
       const response = await axiosApi.slips.create(slipData);
@@ -803,6 +819,7 @@ const Slips = () => {
         customerName: '',
         paymentMethod: 'Cash',
         discount: 0,
+        partialPayment: 0,
         items: [{ 
           productType: 'Cover',
           coverType: '',
@@ -942,6 +959,33 @@ const Slips = () => {
               />
             </Grid>
 
+            {/* Partial Payment Field (for Udhar only) */}
+            {formData.paymentMethod === 'Udhar' && (() => {
+              const { totalAmount: currentTotal } = calculateTotals();
+              return (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Customer Pays Now (Rs)"
+                    name="partialPayment"
+                    value={formData.partialPayment || 0}
+                    onChange={handleInputChange}
+                    inputProps={{ min: 0, step: 0.01, max: currentTotal }}
+                    helperText={`Enter amount customer is paying now (Max: Rs ${currentTotal.toFixed(2)})`}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'warning.light',
+                        '&:hover': {
+                          bgcolor: 'warning.main',
+                        }
+                      }
+                    }}
+                  />
+                </Grid>
+              );
+            })()}
+
             {/* Customer Balance Display (for Udhar) */}
             {formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer' && (
               <Grid item xs={12}>
@@ -953,7 +997,15 @@ const Slips = () => {
                     Previous Balance: <strong>Rs {customerBalance.previous.toFixed(2)}</strong>
                   </Typography>
                   <Typography variant="body2">
-                    Current Balance (after this slip): <strong>Rs {customerBalance.current.toFixed(2)}</strong>
+                    New Bill Amount: <strong>Rs {totalAmount.toFixed(2)}</strong>
+                  </Typography>
+                  {parseFloat(formData.partialPayment || 0) > 0 && (
+                    <Typography variant="body2">
+                      Customer Pays Now: <strong>Rs {parseFloat(formData.partialPayment || 0).toFixed(2)}</strong>
+                    </Typography>
+                  )}
+                  <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold', color: 'warning.dark' }}>
+                    Total Remaining Balance: <strong>Rs {customerBalance.remaining.toFixed(2)}</strong>
                   </Typography>
                 </Alert>
               </Grid>
@@ -1508,21 +1560,44 @@ const Slips = () => {
                   <Divider sx={{ my: 1.5, bgcolor: 'rgba(255,255,255,0.3)' }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: formData.paymentMethod === 'Udhar' ? 1 : 0 }}>
                     <Typography variant="h6" sx={{ opacity: 0.9, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                      Payable Amount:
+                      {formData.paymentMethod === 'Udhar' ? 'New Bill Amount:' : 'Payable Amount:'}
                     </Typography>
                     <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                       Rs {totalAmount.toFixed(2)}
                     </Typography>
                   </Box>
                   {formData.paymentMethod === 'Udhar' && (
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                      <Typography variant="body1" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 'bold' }}>
-                        Current Balance:
-                      </Typography>
-                      <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, color: 'warning.main' }}>
-                        Rs {customerBalance.current.toFixed(2)}
-                      </Typography>
-                    </Box>
+                    <>
+                      {parseFloat(formData.partialPayment || 0) > 0 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, mt: 1 }}>
+                          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                            Customer Pays Now:
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' }, color: 'success.main', fontWeight: 'bold' }}>
+                            -Rs {parseFloat(formData.partialPayment || 0).toFixed(2)}
+                          </Typography>
+                        </Box>
+                      )}
+                      {parseFloat(formData.partialPayment || 0) > 0 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                            Remaining Balance (This Bill):
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 'bold' }}>
+                            Rs {Math.max(0, totalAmount - parseFloat(formData.partialPayment || 0)).toFixed(2)}
+                          </Typography>
+                        </Box>
+                      )}
+                      <Divider sx={{ my: 1, bgcolor: 'rgba(255,255,255,0.3)' }} />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                        <Typography variant="body1" sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 'bold' }}>
+                          Total Remaining Balance:
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, color: 'warning.main' }}>
+                          Rs {customerBalance.remaining.toFixed(2)}
+                        </Typography>
+                      </Box>
+                    </>
                   )}
                 </Box>
               </Card>
