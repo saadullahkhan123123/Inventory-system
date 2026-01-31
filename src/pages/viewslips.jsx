@@ -139,11 +139,18 @@ const SlipPDFDocument = ({ slip }) => (
           <Text>Discount: -Rs {slip.discount?.toLocaleString()}</Text>
         )}
         <Text style={styles.totalAmount}>Payable Amount: Rs {slip.totalAmount?.toLocaleString()}</Text>
-        {slip.paymentMethod === 'Udhar' && slip.previousBalance > 0 && (
+        {slip.paymentMethod === 'Udhar' && (
           <>
-            <Text>Previous Balance: Rs {slip.previousBalance?.toLocaleString()}</Text>
+            {slip.previousBalance > 0 && (
+              <Text>Previous Balance: Rs {slip.previousBalance?.toLocaleString()}</Text>
+            )}
+            {slip.partialPayment > 0 && (
+              <Text style={{ color: '#4caf50' }}>
+                Customer Paid: Rs {slip.partialPayment?.toLocaleString()}
+              </Text>
+            )}
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#ff9800' }}>
-              Current Balance: Rs {slip.currentBalance?.toLocaleString()}
+              Remaining Balance: Rs {((slip.currentBalance || slip.totalAmount || 0) - (slip.partialPayment || 0)).toLocaleString()}
             </Text>
           </>
         )}
@@ -371,9 +378,10 @@ function SlipPage() {
             <div><strong>Subtotal:</strong> Rs ${slip.subtotal?.toLocaleString()}</div>
             ${slip.discount > 0 ? `<div><strong>Discount:</strong> -Rs ${slip.discount?.toLocaleString()}</div>` : ''}
             <div class="total-amount"><strong>Payable Amount:</strong> Rs ${slip.totalAmount?.toLocaleString()}</div>
-            ${slip.paymentMethod === 'Udhar' && slip.previousBalance > 0 ? `
-              <div><strong>Previous Balance:</strong> Rs ${slip.previousBalance?.toLocaleString()}</div>
-              <div style="font-size: 18px; font-weight: bold; color: #ff9800;"><strong>Current Balance:</strong> Rs ${slip.currentBalance?.toLocaleString()}</div>
+            ${slip.paymentMethod === 'Udhar' ? `
+              ${slip.previousBalance > 0 ? `<div><strong>Previous Balance:</strong> Rs ${slip.previousBalance?.toLocaleString()}</div>` : ''}
+              ${slip.partialPayment > 0 ? `<div style="color: #4caf50;"><strong>Customer Paid:</strong> Rs ${slip.partialPayment?.toLocaleString()}</div>` : ''}
+              <div style="font-size: 18px; font-weight: bold; color: #ff9800;"><strong>Remaining Balance:</strong> Rs ${((slip.currentBalance || slip.totalAmount || 0) - (slip.partialPayment || 0)).toLocaleString()}</div>
             ` : ''}
           </div>
           
@@ -716,15 +724,27 @@ function SlipPage() {
               <strong>Discount:</strong> -Rs {(slip.discount || 0).toLocaleString()}
             </Typography>
           )}
-          {slip.paymentMethod === 'Udhar' && slip.previousBalance > 0 && (
+          {slip.paymentMethod === 'Udhar' && (
             <>
-              <Typography sx={{ 
-                mb: 1,
-                fontSize: { xs: '0.875rem', sm: '1rem' },
-                fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-              }}>
-                <strong>Previous Balance:</strong> Rs {(slip.previousBalance || 0).toLocaleString()}
-              </Typography>
+              {slip.previousBalance > 0 && (
+                <Typography sx={{ 
+                  mb: 1,
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+                }}>
+                  <strong>Previous Balance:</strong> Rs {(slip.previousBalance || 0).toLocaleString()}
+                </Typography>
+              )}
+              {slip.partialPayment > 0 && (
+                <Typography sx={{ 
+                  mb: 1,
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+                  color: 'success.main'
+                }}>
+                  <strong>Customer Paid:</strong> Rs {(slip.partialPayment || 0).toLocaleString()}
+                </Typography>
+              )}
               <Typography sx={{ 
                 mb: 1,
                 fontSize: { xs: '1rem', sm: '1.125rem' },
@@ -732,7 +752,7 @@ function SlipPage() {
                 color: 'warning.main',
                 fontWeight: 'bold'
               }}>
-                <strong>Current Balance:</strong> Rs {(slip.currentBalance || 0).toLocaleString()}
+                <strong>Remaining Balance:</strong> Rs {((slip.currentBalance || slip.totalAmount || 0) - (slip.partialPayment || 0)).toLocaleString()}
               </Typography>
             </>
           )}
