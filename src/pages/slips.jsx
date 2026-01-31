@@ -642,26 +642,34 @@ const Slips = () => {
     return { subtotal, discount, totalAmount };
   };
 
-  // Fetch customer balance when Udhar is selected
+  // Fetch customer balance when Udhar is selected or customer name changes
   useEffect(() => {
     const fetchCustomerBalance = async () => {
+      // Only fetch if Udhar is selected and customer name is provided
       if (formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer') {
         try {
+          // Fetch all slips for this customer (not just Udhar, to calculate total remaining)
           const response = await axiosApi.slips.getAll({ 
-            customerName: formData.customerName.trim(),
-            paymentMethod: 'Udhar'
+            customerName: formData.customerName.trim()
           });
           const slips = response.data?.slips || response.data || [];
-          // Calculate previous balance: sum of all unpaid amounts (totalAmount - discount - partialPayment)
+          
+          // Calculate previous balance: sum of all unpaid amounts from Udhar slips
+          // For Udhar slips: (totalAmount - discount) - partialPayment = remaining
+          // For Paid slips: already paid, so 0 remaining
           const previousBalance = slips
-            .filter(slip => slip.status !== 'Cancelled')
+            .filter(slip => 
+              slip.status !== 'Cancelled' && 
+              slip.paymentMethod === 'Udhar'
+            )
             .reduce((sum, slip) => {
               const slipTotal = (slip.totalAmount || 0) - (slip.discount || 0);
               const partialPaid = slip.partialPayment || 0;
-              return sum + (slipTotal - partialPaid);
+              const remaining = Math.max(0, slipTotal - partialPaid);
+              return sum + remaining;
             }, 0);
           
-          // Calculate current total
+          // Calculate current total for new slip
           const subtotal = formData.items.reduce((sum, item) => {
             const pricing = calculateItemPricing(item);
             return sum + pricing.total;
@@ -669,20 +677,43 @@ const Slips = () => {
           const discount = parseFloat(formData.discount) || 0;
           const totalAmount = Math.max(0, subtotal - discount);
           
-          // Calculate partial payment and remaining balance
+          // Calculate partial payment and remaining balance for new slip
           const partialPayment = parseFloat(formData.partialPayment) || 0;
-          const remainingBalance = Math.max(0, totalAmount - partialPayment);
+          const newSlipRemaining = Math.max(0, totalAmount - partialPayment);
+          
+          // Total remaining = previous balance + new slip remaining
+          const totalRemaining = previousBalance + newSlipRemaining;
           
           setCustomerBalance({
             previous: previousBalance,
             current: previousBalance + totalAmount,
-            remaining: previousBalance + remainingBalance
+            remaining: totalRemaining
           });
         } catch (error) {
           console.error('Error fetching customer balance:', error);
+          
+          // Use enhanced error message if available
+          let errorMsg = error.userMessage || error.response?.data?.error || error.message || 'Failed to fetch customer balance';
+          
+          // Special handling for 503 errors
+          if (error.response?.status === 503) {
+            if (error.response?.data?.error === 'Database connection unavailable') {
+              errorMsg = 'Database is temporarily unavailable. Please wait a moment and try again.';
+            } else {
+              errorMsg = 'Service is temporarily unavailable. Please wait a moment and try again.';
+            }
+          }
+          
+          // Show notification only if it's not a connection issue (to avoid spam)
+          if (error.response?.status !== 503) {
+            showNotification('error', `Failed to fetch customer balance: ${errorMsg}`);
+          }
+          
+          // If error, set to 0 (first time customer or error)
           setCustomerBalance({ previous: 0, current: 0, remaining: 0 });
         }
       } else {
+        // Reset balance when not Udhar or no customer name
         setCustomerBalance({ previous: 0, current: 0, remaining: 0 });
         // Reset partial payment when not Udhar
         if (formData.paymentMethod !== 'Udhar') {
@@ -691,7 +722,12 @@ const Slips = () => {
       }
     };
     
-    fetchCustomerBalance();
+    // Add a small delay to avoid too many API calls when typing
+    const timeoutId = setTimeout(() => {
+      fetchCustomerBalance();
+    }, 300); // 300ms debounce
+    
+    return () => clearTimeout(timeoutId);
   }, [formData.paymentMethod, formData.customerName, formData.discount, formData.items, formData.partialPayment]);
 
   // ✔ UPDATED VALIDATION
@@ -1000,24 +1036,48 @@ const Slips = () => {
             {/* Customer Balance Display (for Udhar) */}
             {formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer' && (
               <Grid item xs={12}>
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                <Alert 
+                  severity={customerBalance.previous > 0 ? "warning" : "info"} 
+                  sx={{ borderRadius: 2 }}
+                >
                   <Typography variant="body2" fontWeight="bold" gutterBottom>
                     Customer Balance Information:
                   </Typography>
-                  <Typography variant="body2">
-                    Previous Balance: <strong>Rs {customerBalance.previous.toFixed(2)}</strong>
-                  </Typography>
-                  <Typography variant="body2">
-                    New Bill Amount: <strong>Rs {totalAmount.toFixed(2)}</strong>
-                  </Typography>
-                  {parseFloat(formData.partialPayment || 0) > 0 && (
-                    <Typography variant="body2">
-                      Customer Pays Now: <strong>Rs {parseFloat(formData.partialPayment || 0).toFixed(2)}</strong>
-                    </Typography>
+                  {customerBalance.previous > 0 ? (
+                    <>
+                      <Typography variant="body2">
+                        Previous Remaining Balance: <strong>Rs {customerBalance.previous.toFixed(2)}</strong>
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        New Bill Amount: <strong>Rs {totalAmount.toFixed(2)}</strong>
+                      </Typography>
+                      {parseFloat(formData.partialPayment || 0) > 0 && (
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          Customer Pays Now: <strong>Rs {parseFloat(formData.partialPayment || 0).toFixed(2)}</strong>
+                        </Typography>
+                      )}
+                      <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold', color: 'warning.dark' }}>
+                        Total Remaining Balance: <strong>Rs {customerBalance.remaining.toFixed(2)}</strong>
+                      </Typography>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="body2" color="text.secondary">
+                        This is the first time for this customer. No previous balance.
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        New Bill Amount: <strong>Rs {totalAmount.toFixed(2)}</strong>
+                      </Typography>
+                      {parseFloat(formData.partialPayment || 0) > 0 && (
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          Customer Pays Now: <strong>Rs {parseFloat(formData.partialPayment || 0).toFixed(2)}</strong>
+                        </Typography>
+                      )}
+                      <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold', color: 'warning.dark' }}>
+                        Remaining Balance: <strong>Rs {customerBalance.remaining.toFixed(2)}</strong>
+                      </Typography>
+                    </>
                   )}
-                  <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold', color: 'warning.dark' }}>
-                    Total Remaining Balance: <strong>Rs {customerBalance.remaining.toFixed(2)}</strong>
-                  </Typography>
                 </Alert>
               </Grid>
             )}
