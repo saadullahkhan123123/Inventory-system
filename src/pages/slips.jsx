@@ -648,16 +648,25 @@ const Slips = () => {
       // Only fetch if Udhar is selected and customer name is provided
       if (formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer') {
         try {
-          // Fetch all slips for this customer (not just Udhar, to calculate total remaining)
+          // Fetch all slips for this customer (exact match)
+          const customerNameTrimmed = formData.customerName.trim();
           const response = await axiosApi.slips.getAll({ 
-            customerName: formData.customerName.trim()
+            customerName: customerNameTrimmed,
+            limit: 1000 // Get all slips for this customer
           });
           const slips = response.data?.slips || response.data || [];
+          
+          // Double-check: Filter slips to ensure exact customer name match (case-insensitive)
+          // This is a safety check in case backend returns partial matches
+          const exactMatchSlips = slips.filter(slip => {
+            const slipCustomerName = (slip.customerName || '').trim();
+            return slipCustomerName.toLowerCase() === customerNameTrimmed.toLowerCase();
+          });
           
           // Calculate previous balance: sum of all unpaid amounts from Udhar slips
           // For Udhar slips: (totalAmount - discount) - partialPayment = remaining
           // For Paid slips: already paid, so 0 remaining
-          const previousBalance = slips
+          const previousBalance = exactMatchSlips
             .filter(slip => 
               slip.status !== 'Cancelled' && 
               slip.paymentMethod === 'Udhar'
