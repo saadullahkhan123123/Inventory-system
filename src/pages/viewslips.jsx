@@ -99,7 +99,7 @@ const SlipPDFDocument = ({ slip }) => (
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
         <Text style={styles.companyName}>Saeed Auto</Text>
-        <Text>Contact: +92 300 1234567</Text>
+        <Text>Contact: 03122587825</Text>
         <Text style={styles.slipTitle}>SALES SLIP</Text>
       </View>
 
@@ -318,7 +318,7 @@ function SlipPage() {
         <body>
           <div class="header">
             <div class="company-name">Saeed Auto</div>
-            <div>Contact: +92 300 1234567</div>
+            <div>Contact: 03122587825</div>
             <div class="slip-title">SALES SLIP</div>
           </div>
           
