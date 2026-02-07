@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Search, Refresh, Clear, Warning, Edit, Save, Cancel,
-  Inventory as InventoryIcon, ArrowUpward, ArrowDownward
+  Inventory as InventoryIcon, ArrowUpward, ArrowDownward, DeleteSweep
 } from '@mui/icons-material';
 import { axiosApi } from '../utils/api';
 import { useNotification } from '../utils/notifications';
@@ -62,6 +62,8 @@ export default function Inventory() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [updating, setUpdating] = useState(false);
+  const [openDeleteAllDialog, setOpenDeleteAllDialog] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const { notification, showNotification, hideNotification } = useNotification();
 
   // Fetch items
@@ -224,6 +226,24 @@ export default function Inventory() {
     }
   };
 
+  // Delete all products
+  const handleDeleteAllProducts = async () => {
+    try {
+      setDeletingAll(true);
+      const response = await axiosApi.items.deleteAll();
+      const count = response.data?.deleted?.items ?? 0;
+      showNotification('success', `All products permanently deleted. ${count} item(s) removed from database.`);
+      setOpenDeleteAllDialog(false);
+      await fetchItems();
+    } catch (error) {
+      console.error('Delete all products error:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to delete all products';
+      showNotification('error', errorMsg);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   // Quick stock update
   const handleQuickStockUpdate = async (itemId, newQuantity) => {
     try {
@@ -257,6 +277,7 @@ export default function Inventory() {
     }}>
       {/* Header */}
       <Box sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="h4" sx={{ 
             mb: 1, 
@@ -273,10 +294,37 @@ export default function Inventory() {
             content="View and edit your inventory items. Click Edit to update item details or stock."
           />
         </Box>
-        <Typography variant="subtitle1" color="textSecondary">
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<DeleteSweep />}
+          onClick={() => setOpenDeleteAllDialog(true)}
+          disabled={loading || items.length === 0}
+          size={isMobile ? 'small' : 'medium'}
+        >
+          Delete all products
+        </Button>
+        </Box>
+        <Typography variant="subtitle1" color="textSecondary" sx={{ mt: 1 }}>
           View and manage inventory items. Edit items to update details or stock levels.
         </Typography>
       </Box>
+
+      {/* Delete all products confirmation dialog */}
+      <Dialog open={openDeleteAllDialog} onClose={() => !deletingAll && setOpenDeleteAllDialog(false)}>
+        <DialogTitle>Delete All Products?</DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mt: 1 }}>
+            This will permanently delete <strong>all products</strong> from the database. This action cannot be undone.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteAllDialog(false)} disabled={deletingAll}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDeleteAllProducts} disabled={deletingAll}>
+            {deletingAll ? 'Deleting…' : 'Yes, Delete All'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <GettingStarted />
 

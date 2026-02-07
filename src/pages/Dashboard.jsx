@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box, Paper, Typography, Grid, Card, CardContent, FormControl, InputLabel, Select, MenuItem,
   CircularProgress, Alert, Button, Tooltip, IconButton, Chip, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Badge, List, ListItem, ListItemText, Divider
+  TableContainer, TableHead, TableRow, Badge, List, ListItem, ListItemText, Divider,
+  Dialog, DialogTitle, DialogContent, DialogActions, Stack
 } from '@mui/material';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
@@ -10,7 +11,7 @@ import {
 } from 'recharts';
 import { 
   Download, Refresh, HelpOutline, TrendingUp, People, Inventory2, 
-  Warning, Receipt, AttachMoney, Notifications, PendingActions, Timeline
+  Warning, Receipt, AttachMoney, Notifications, PendingActions, Timeline, DeleteSweep, DeleteForever
 } from '@mui/icons-material';
 import { axiosApi } from '../utils/api';
 import { useNotification } from '../utils/notifications';
@@ -27,6 +28,9 @@ function Dashboard() {
   const [topProducts, setTopProducts] = useState([]);
   const [inventoryLevels, setInventoryLevels] = useState(null);
   const [ordersByStatus, setOrdersByStatus] = useState([]);
+  const [openClearDataDialog, setOpenClearDataDialog] = useState(false);
+  const [clearAction, setClearAction] = useState(null); // 'income' | 'products' | 'slips'
+  const [clearing, setClearing] = useState(false);
   const { notification, showNotification, hideNotification } = useNotification();
 
   useEffect(() => {
@@ -110,6 +114,37 @@ function Dashboard() {
       showNotification('error', errorMsg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClearDataAction = (action) => setClearAction(action);
+  const handleClearDataConfirm = async () => {
+    if (!clearAction) return;
+    try {
+      setClearing(true);
+      if (clearAction === 'income') {
+        const res = await axiosApi.income.deleteAll();
+        showNotification('success', `Income reset. ${res.data?.deleted?.income ?? 0} record(s) removed.`);
+      } else if (clearAction === 'products') {
+        const res = await axiosApi.items.deleteAll();
+        showNotification('success', `All products deleted. ${res.data?.deleted?.items ?? 0} item(s) removed.`);
+      } else if (clearAction === 'slips') {
+        const res = await axiosApi.slips.deleteAll();
+        showNotification('success', `All slips deleted. ${res.data?.deleted?.slips ?? 0} slip(s) removed.`);
+      }
+      setOpenClearDataDialog(false);
+      setClearAction(null);
+      await fetchDashboardData();
+    } catch (err) {
+      showNotification('error', err.response?.data?.error || err.message || 'Failed to clear data');
+    } finally {
+      setClearing(false);
+    }
+  };
+  const handleClearDataDialogClose = () => {
+    if (!clearing) {
+      setOpenClearDataDialog(false);
+      setClearAction(null);
     }
   };
 
@@ -200,8 +235,80 @@ function Dashboard() {
           >
             Export CSV
           </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteForever />}
+            onClick={() => { setClearAction(null); setOpenClearDataDialog(true); }}
+            size="small"
+          >
+            Clear data
+          </Button>
         </Box>
       </Box>
+
+      {/* Clear data dialog */}
+      <Dialog open={openClearDataDialog} onClose={handleClearDataDialogClose}>
+        <DialogTitle>Clear data</DialogTitle>
+        <DialogContent>
+          {!clearAction ? (
+            <>
+              <Typography color="textSecondary" sx={{ mb: 2 }}>
+                Permanently remove data from the database. Each action cannot be undone.
+              </Typography>
+              <Stack direction="column" spacing={1}>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteSweep />}
+                  onClick={() => setClearAction('income')}
+                  fullWidth
+                >
+                  Income reset — remove all income records
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteSweep />}
+                  onClick={() => setClearAction('products')}
+                  fullWidth
+                >
+                  Delete all products — remove all inventory items
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteSweep />}
+                  onClick={() => setClearAction('slips')}
+                  fullWidth
+                >
+                  Delete all slips — remove all slips
+                </Button>
+              </Stack>
+            </>
+          ) : (
+            <>
+              <Alert severity="error" sx={{ mt: 1 }}>
+                {clearAction === 'income' && 'Permanently delete all income records from the database?'}
+                {clearAction === 'products' && 'Permanently delete all products from the database?'}
+                {clearAction === 'slips' && 'Permanently delete all slips from the database?'}
+              </Alert>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {clearAction ? (
+            <>
+              <Button onClick={() => setClearAction(null)} disabled={clearing}>Back</Button>
+              <Button variant="contained" color="error" onClick={handleClearDataConfirm} disabled={clearing}>
+                {clearing ? 'Clearing…' : 'Yes, delete'}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={handleClearDataDialogClose}>Cancel</Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       {/* Enhanced Summary Cards - 10+ Features */}
       {dashboardData?.summary && (

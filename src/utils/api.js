@@ -128,6 +128,7 @@ axiosApi.items = {
   create: (data) => axiosApi.post('/items', data),
   update: (id, data) => axiosApi.put(`/items/${id}`, data),
   delete: (id) => axiosApi.delete(`/items/${id}`),
+  deleteAll: () => axiosApi.delete('/items/all'),
   updateStock: (id, data) => axiosApi.patch(`/items/${id}/stock`, data),
   getLowStock: () => axiosApi.get('/items/low-stock'),
   getOutOfStock: () => axiosApi.get('/items/out-of-stock'),
@@ -141,6 +142,7 @@ axiosApi.slips = {
   update: (id, data) => axiosApi.put(`/slips/${id}`, data),
   cancel: (id, reason = '') => axiosApi.patch(`/slips/cancel/${id}`, { reason }),
   delete: (id) => axiosApi.delete(`/slips/${id}`),
+  deleteAll: () => axiosApi.delete('/slips/all'),
 };
 
 // Income API
@@ -150,12 +152,17 @@ axiosApi.income = {
   create: (data) => axiosApi.post('/income', data),
   update: (id, data) => axiosApi.put(`/income/${id}`, data),
   delete: (id) => axiosApi.delete(`/income/${id}`),
+  deleteAll: () => axiosApi.delete('/income/all'),
   getSummary: () => axiosApi.get('/income/summary/overview'),
   getToday: () => axiosApi.get('/income/today'),
   getWeekly: () => axiosApi.get('/income/weekly'),
   getMonthly: () => axiosApi.get('/income/monthly'),
   getTopProducts: (params = {}) => axiosApi.get('/income/top-products', { params }),
 };
+
+// Reset API - clear all slips, income, items (requires secret)
+axiosApi.resetDatabase = (secret) =>
+  axiosApi.post('/reset', { secret, confirm: 'RESET_ALL' });
 
 // Analytics API
 axiosApi.analytics = {

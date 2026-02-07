@@ -29,6 +29,10 @@ import {
   Tab,
   Stack,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   Search,
@@ -40,6 +44,7 @@ import {
   AttachMoney,
   People,
   Receipt,
+  DeleteSweep,
 } from "@mui/icons-material";
 import { useMediaQuery, useTheme } from "@mui/material";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -73,6 +78,10 @@ const Income = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Income reset (delete all)
+  const [openIncomeResetDialog, setOpenIncomeResetDialog] = useState(false);
+  const [resettingIncome, setResettingIncome] = useState(false);
 
   // Fetch income data
   useEffect(() => {
@@ -139,6 +148,23 @@ const Income = () => {
       showNotification("error", errorMsg);
     } finally {
       setLoading({ income: false, exporting: false });
+    }
+  };
+
+  const handleIncomeReset = async () => {
+    try {
+      setResettingIncome(true);
+      const response = await axiosApi.income.deleteAll();
+      const count = response.data?.deleted?.income ?? 0;
+      showNotification('success', `All income permanently deleted. ${count} record(s) removed from database.`);
+      setOpenIncomeResetDialog(false);
+      await fetchData();
+    } catch (err) {
+      console.error('Income reset error:', err);
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to reset income';
+      showNotification('error', errorMsg);
+    } finally {
+      setResettingIncome(false);
     }
   };
 
@@ -306,6 +332,16 @@ const Income = () => {
             </Typography>
           </Box>
           <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteSweep />}
+              onClick={() => setOpenIncomeResetDialog(true)}
+              disabled={loading.income || allIncomes.length === 0}
+              size={isMobile ? 'small' : 'medium'}
+            >
+              Income reset
+            </Button>
             <Tooltip title="Export to Excel">
               <Button
                 variant="outlined"
@@ -325,6 +361,22 @@ const Income = () => {
           </Stack>
         </Box>
       </Box>
+
+      {/* Income reset confirmation dialog */}
+      <Dialog open={openIncomeResetDialog} onClose={() => !resettingIncome && setOpenIncomeResetDialog(false)}>
+        <DialogTitle>Income Reset?</DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mt: 1 }}>
+            This will permanently delete <strong>all income records</strong> from the database. This action cannot be undone.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenIncomeResetDialog(false)} disabled={resettingIncome}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleIncomeReset} disabled={resettingIncome}>
+            {resettingIncome ? 'Resetting…' : 'Yes, Reset Income'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Income Summary */}
       {incomeSummary && (

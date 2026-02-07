@@ -6,7 +6,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery, useTheme
 } from '@mui/material';
 import {
-  Search, Refresh, Delete, Clear
+  Search, Refresh, Delete, Clear, DeleteSweep
 } from '@mui/icons-material';
 import { axiosApi } from '../utils/api';
 import { useNotification } from '../utils/notifications';
@@ -23,6 +23,8 @@ const SearchSlip = () => {
   const [loading, setLoading] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openAllDeleteDialog, setOpenAllDeleteDialog] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   // Fetch all slips on component mount
   useEffect(() => {
@@ -130,6 +132,24 @@ const SearchSlip = () => {
     }
   };
 
+  // Delete ALL slips permanently
+  const handleDeleteAllSlips = async () => {
+    try {
+      setDeletingAll(true);
+      const response = await axiosApi.slips.deleteAll();
+      const count = response.data?.deleted?.slips ?? 0;
+      showNotification('success', `All slips permanently deleted. ${count} slip(s) removed from database.`);
+      setOpenAllDeleteDialog(false);
+      await fetchAllSlips();
+    } catch (error) {
+      console.error('Delete all error:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to delete all slips';
+      showNotification('error', errorMsg);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   // Get payment method color
   const getPaymentMethodColor = (method) => {
     const colors = {
@@ -183,13 +203,45 @@ const SearchSlip = () => {
               Search slips by customer name and manage them
             </Typography>
           </Box>
-          <Tooltip title="Refresh">
-            <IconButton onClick={fetchAllSlips} disabled={loading}>
-              <Refresh />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Tooltip title="Delete all slips permanently">
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteSweep />}
+                onClick={() => setOpenAllDeleteDialog(true)}
+                disabled={loading || allSlips.length === 0}
+                size={isMobile ? 'small' : 'medium'}
+              >
+                All Delete
+              </Button>
+            </Tooltip>
+            <Tooltip title="Refresh">
+              <IconButton onClick={fetchAllSlips} disabled={loading}>
+                <Refresh />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         </Box>
       </Box>
+
+      {/* All Delete confirmation dialog */}
+      <Dialog open={openAllDeleteDialog} onClose={() => !deletingAll && setOpenAllDeleteDialog(false)}>
+        <DialogTitle>Delete All Slips?</DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mt: 1 }}>
+            This will permanently delete <strong>all slips</strong> from the database. Related income records will be marked inactive. This action cannot be undone.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAllDeleteDialog(false)} disabled={deletingAll}>
+            Cancel
+          </Button>
+          <Button variant="contained" color="error" onClick={handleDeleteAllSlips} disabled={deletingAll}>
+            {deletingAll ? 'Deleting…' : 'Yes, Delete All'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Statistics Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>

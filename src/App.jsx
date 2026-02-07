@@ -16,6 +16,7 @@ const Income = lazy(() => import('./pages/icome'));
 const SearchSlip = lazy(() => import('./pages/searchSlip'));
 const ViewSlips = lazy(() => import('./pages/viewslips'));
 const CustomerHistory = lazy(() => import('./pages/CustomerHistoryEnhanced'));
+const ResetDatabase = lazy(() => import('./pages/ResetDatabase'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -81,6 +82,11 @@ function AppRoutes() {
         <Route path="/customer-history" element={
           <PageWrapper>
             <CustomerHistory />
+          </PageWrapper>
+        } />
+        <Route path="/reset-database" element={
+          <PageWrapper>
+            <ResetDatabase />
           </PageWrapper>
         } />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -42,7 +42,7 @@ function Header() {
       return '/slippage';
     }
     
-    const validPaths = ['/inventory', '/additems', '/income', '/slips', '/slippage', '/search-slips', '/dashboard'];
+    const validPaths = ['/inventory', '/additems', '/income', '/slips', '/slippage', '/search-slips', '/dashboard', '/reset-database'];
     if (validPaths.includes(path)) {
       return path;
     }
@@ -61,6 +61,7 @@ function Header() {
     { label: 'View Slips', path: '/slippage' },
     { label: 'Search Slips', path: '/search-slips' },
     { label: 'Customer History', path: '/customer-history' },
+    { label: 'Reset Database', path: '/reset-database' },
   ];
 
   // Mobile drawer - Responsive width
