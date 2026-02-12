@@ -526,8 +526,8 @@ function Dashboard() {
             <Typography variant="h6" gutterBottom fontWeight="bold">
               Sales Trends ({timeRange})
             </Typography>
-            <Box sx={{ width: '100%', height: { xs: 250, sm: 300 }, mt: 2, minHeight: 200 }}>
-              <ResponsiveContainer>
+            <Box sx={{ width: '100%', height: 280, minHeight: 250, mt: 2 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
                 <LineChart data={salesTrends.map(item => ({
                   date: item._id.date,
                   sales: item.totalSales,
@@ -552,8 +552,8 @@ function Dashboard() {
             <Typography variant="h6" gutterBottom fontWeight="bold">
               Orders by Status
             </Typography>
-            <Box sx={{ width: '100%', height: { xs: 250, sm: 300 }, mt: 2, minHeight: 200 }}>
-              <ResponsiveContainer>
+            <Box sx={{ width: '100%', height: 280, minHeight: 250, mt: 2 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
                 <PieChart>
                   <Pie
                     data={ordersByStatus}
@@ -585,8 +585,8 @@ function Dashboard() {
             <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               Top Selling Products ({timeRange})
             </Typography>
-            <Box sx={{ width: '100%', height: { xs: 250, sm: 300, md: 350 }, mt: 2, minHeight: 200 }}>
-              <ResponsiveContainer>
+            <Box sx={{ width: '100%', height: 280, minHeight: 250, mt: 2 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
                 <BarChart data={topProducts.map(item => ({
                   name: item._id?.length > 20 ? item._id.substring(0, 20) + '...' : item._id,
                   quantity: item.totalQuantity,
@@ -612,8 +612,8 @@ function Dashboard() {
             <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               Inventory Stock Levels
             </Typography>
-            <Box sx={{ width: '100%', height: { xs: 250, sm: 300, md: 350 }, mt: 2, minHeight: 200 }}>
-              <ResponsiveContainer>
+            <Box sx={{ width: '100%', height: 280, minHeight: 250, mt: 2 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
                 <BarChart
                   data={[
                     { name: 'Out of Stock', value: inventoryLevels?.stockLevels?.outOfStock?.length || 0 },
