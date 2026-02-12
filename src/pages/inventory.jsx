@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Search, Refresh, Clear, Warning, Edit, Save, Cancel,
-  Inventory as InventoryIcon, ArrowUpward, ArrowDownward, DeleteSweep
+  Inventory as InventoryIcon, ArrowUpward, ArrowDownward, DeleteSweep, Delete
 } from '@mui/icons-material';
 import { axiosApi } from '../utils/api';
 import { useNotification } from '../utils/notifications';
@@ -64,6 +64,8 @@ export default function Inventory() {
   const [updating, setUpdating] = useState(false);
   const [openDeleteAllDialog, setOpenDeleteAllDialog] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const { notification, showNotification, hideNotification } = useNotification();
 
   // Fetch items
@@ -244,6 +246,23 @@ export default function Inventory() {
     }
   };
 
+  // Delete single product
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+    try {
+      setDeletingId(itemToDelete._id);
+      await axiosApi.items.delete(itemToDelete._id);
+      showNotification('success', 'Product removed from inventory.');
+      setItemToDelete(null);
+      await fetchItems();
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to delete product';
+      showNotification('error', errorMsg);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   // Quick stock update
   const handleQuickStockUpdate = async (itemId, newQuantity) => {
     try {
@@ -309,6 +328,22 @@ export default function Inventory() {
           View and manage inventory items. Edit items to update details or stock levels.
         </Typography>
       </Box>
+
+      {/* Delete single product confirmation dialog */}
+      <Dialog open={!!itemToDelete} onClose={() => !deletingId && setItemToDelete(null)}>
+        <DialogTitle>Delete product?</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mt: 1 }}>
+            Remove &quot;{itemToDelete?.name || 'this product'}&quot; from inventory? This cannot be undone.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setItemToDelete(null)} disabled={!!deletingId}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDeleteItem} disabled={!!deletingId}>
+            {deletingId ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete all products confirmation dialog */}
       <Dialog open={openDeleteAllDialog} onClose={() => !deletingAll && setOpenDeleteAllDialog(false)}>
@@ -580,15 +615,23 @@ export default function Inventory() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Tooltip title="Edit Item">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleEditClick(item)}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    <Stack direction="row" spacing={0.5}>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" color="primary" onClick={() => handleEditClick(item)}>
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => setItemToDelete(item)}
+                          disabled={!!deletingId}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
