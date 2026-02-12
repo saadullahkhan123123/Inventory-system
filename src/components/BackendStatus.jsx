@@ -61,6 +61,11 @@ const BackendStatus = () => {
           {status === 'checking' && 'Checking backend connection...'}
           {status === 'offline' && 'Backend server is offline or unreachable'}
         </Typography>
+        {status === 'offline' && (
+          <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+            Check that the backend is deployed on Vercel and <strong>MONGO_URI</strong> is set in project env. For local dev, run the Express server and set <strong>VITE_API_URL=http://localhost:5000</strong> in a <code>.env</code> file, then restart the app.
+          </Typography>
+        )}
         {error && (
           <Box sx={{ mt: 1 }}>
             <Typography variant="caption" display="block">
