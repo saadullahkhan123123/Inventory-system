@@ -18,11 +18,15 @@ const Slips = () => {
   const [formData, setFormData] = useState({
     customerName: '',
     date: new Date().toISOString().split('T')[0],
+    paymentMethod: 'Cash',
+    discount: 0,
+    partialPayment: 0,
     items: [{ productId: '', quantity: 1 }]
   });
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState({ products: true, submission: false });
+  const [customerBalance, setCustomerBalance] = useState({ previous: 0, remaining: 0 });
   const { notification, showNotification, hideNotification } = useNotification();
 
   useEffect(() => {
@@ -40,6 +44,39 @@ const Slips = () => {
     };
     fetchProducts();
   }, [showNotification]);
+
+  const getProduct = (productId) => products.find(p => p._id === productId);
+
+  // Fetch customer balance when Udhar and customer name
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (formData.paymentMethod !== 'Udhar' || !formData.customerName.trim() || formData.customerName.trim() === 'Walk Customer') {
+        setCustomerBalance({ previous: 0, remaining: 0 });
+        return;
+      }
+      try {
+        const res = await axiosApi.slips.getAll({ customerName: formData.customerName.trim(), limit: 1000 });
+        const slips = res.data?.slips || res.data || [];
+        const exact = slips.filter(s => (s.customerName || '').trim().toLowerCase() === formData.customerName.trim().toLowerCase());
+        const previous = exact
+          .filter(s => s.status !== 'Cancelled' && s.paymentMethod === 'Udhar')
+          .reduce((sum, s) => sum + Math.max(0, (s.totalAmount || 0) - (s.discount || 0) - (s.partialPayment || 0)), 0);
+        const subtotalCalc = formData.items.reduce((s, it) => {
+          const p = getProduct(it.productId);
+          return s + (p ? (parseInt(it.quantity, 10) || 0) * (p.price || 0) : 0);
+        }, 0);
+        const discount = parseFloat(formData.discount) || 0;
+        const billAmount = Math.max(0, subtotalCalc - discount);
+        const partial = parseFloat(formData.partialPayment) || 0;
+        const remaining = previous + Math.max(0, billAmount - partial);
+        setCustomerBalance({ previous, remaining });
+      } catch {
+        setCustomerBalance({ previous: 0, remaining: 0 });
+      }
+    };
+    const t = setTimeout(fetchBalance, 300);
+    return () => clearTimeout(t);
+  }, [formData.paymentMethod, formData.customerName, formData.discount, formData.partialPayment, formData.items, products]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -65,14 +102,15 @@ const Slips = () => {
     setFormData(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== index) }));
   };
 
-  const getProduct = (productId) => products.find(p => p._id === productId);
   const lineTotal = (item) => {
     const product = getProduct(item.productId);
     if (!product) return 0;
     const qty = Math.max(0, parseInt(item.quantity, 10) || 0);
     return qty * (product.price || 0);
   };
-  const totalAmount = formData.items.reduce((sum, item) => sum + lineTotal(item), 0);
+  const subtotal = formData.items.reduce((sum, item) => sum + lineTotal(item), 0);
+  const discountAmount = parseFloat(formData.discount) || 0;
+  const totalAmount = Math.max(0, subtotal - discountAmount);
 
   const validateForm = () => {
     if (!formData.customerName.trim()) {
@@ -150,6 +188,9 @@ const Slips = () => {
       setFormData({
         customerName: '',
         date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'Cash',
+        discount: 0,
+        partialPayment: 0,
         items: [{ productId: '', quantity: 1 }]
       });
     } catch (err) {
@@ -224,6 +265,69 @@ const Slips = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+                <InputLabel>Payment Method</InputLabel>
+                <Select
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  onChange={handleInputChange}
+                  label="Payment Method"
+                >
+                  <MenuItem value="Cash">Cash</MenuItem>
+                  <MenuItem value="Udhar">Udhar (Credit)</MenuItem>
+                  <MenuItem value="Account">Account</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Discount (Rs)"
+                name="discount"
+                type="number"
+                value={formData.discount}
+                onChange={handleInputChange}
+                inputProps={{ min: 0, step: 0.01 }}
+                size={isMobile ? 'small' : 'medium'}
+              />
+            </Grid>
+
+            {formData.paymentMethod === 'Udhar' && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Pay Amount (Rs) - Customer pays now"
+                  name="partialPayment"
+                  type="number"
+                  value={formData.partialPayment}
+                  onChange={handleInputChange}
+                  inputProps={{ min: 0, step: 0.01, max: totalAmount }}
+                  size={isMobile ? 'small' : 'medium'}
+                  helperText={`Max: Rs ${totalAmount.toFixed(2)}`}
+                />
+              </Grid>
+            )}
+
+            {formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer' && (
+              <Grid item xs={12}>
+                <Alert severity={customerBalance.previous > 0 ? 'warning' : 'info'} sx={{ borderRadius: 2 }}>
+                  <Typography variant="body2" fontWeight="bold" gutterBottom>Customer balance</Typography>
+                  {customerBalance.previous > 0 && (
+                    <Typography variant="body2">Previous balance: Rs {customerBalance.previous.toFixed(2)}</Typography>
+                  )}
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    Bill amount: Rs {totalAmount.toFixed(2)}
+                    {formData.partialPayment > 0 && ` — Pay now: Rs ${parseFloat(formData.partialPayment).toFixed(2)}`}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold" sx={{ mt: 1 }} color="primary.main">
+                    Remaining balance: Rs {customerBalance.remaining.toFixed(2)}
+                  </Typography>
+                </Alert>
+              </Grid>
+            )}
 
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -303,7 +407,17 @@ const Slips = () => {
                 color: 'white',
                 borderRadius: 2
               }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Subtotal</Typography>
+                  <Typography variant="body2">Rs {subtotal.toLocaleString()}</Typography>
+                </Box>
+                {discountAmount > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Discount</Typography>
+                    <Typography variant="body2">- Rs {discountAmount.toLocaleString()}</Typography>
+                  </Box>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.3)' }}>
                   <Typography variant="h6">Total Amount</Typography>
                   <Typography variant="h5" fontWeight="bold">Rs {totalAmount.toLocaleString()}</Typography>
                 </Box>

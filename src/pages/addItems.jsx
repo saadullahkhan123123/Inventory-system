@@ -15,6 +15,8 @@ const AddItems = () => {
 
   const [formData, setFormData] = useState({
     productName: '',
+    companyName: '',
+    bikeName: '',
     category: 'General',
     price: '',
     quantity: '',
@@ -92,6 +94,8 @@ const AddItems = () => {
       showNotification('success', 'Product added successfully!');
       setFormData({
         productName: '',
+        companyName: '',
+        bikeName: '',
         category: 'General',
         price: '',
         quantity: '',
@@ -149,6 +153,30 @@ const AddItems = () => {
                 onChange={handleInputChange}
                 required
                 placeholder="e.g. Aster Cover, Oil Seal"
+                size={isMobile ? 'small' : 'medium'}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Company Name"
+                name="companyName"
+                value={formData.companyName}
+                onChange={handleInputChange}
+                placeholder="e.g. DY, AH, BELTA"
+                size={isMobile ? 'small' : 'medium'}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Bike Name"
+                name="bikeName"
+                value={formData.bikeName}
+                onChange={handleInputChange}
+                placeholder="e.g. 70, CD, 125, Yamaha"
                 size={isMobile ? 'small' : 'medium'}
               />
             </Grid>
