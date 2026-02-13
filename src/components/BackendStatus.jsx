@@ -63,7 +63,7 @@ const BackendStatus = () => {
         </Typography>
         {status === 'offline' && (
           <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-            Check that the backend is deployed on Vercel and <strong>MONGO_URI</strong> is set in project env. For local dev, run the Express server and set <strong>VITE_API_URL=http://localhost:5000</strong> in a <code>.env</code> file, then restart the app.
+            In local dev the app uses <strong>http://localhost:5000</strong>. Run the backend: in the <code>express js</code> folder run <code>node index.js</code> (and set <code>MONGO_URI</code> in a <code>.env</code> there). To use the Vercel backend instead, set <strong>VITE_API_URL=https://saeedautobackend.vercel.app</strong> in this project&apos;s <code>.env</code> and restart.
           </Typography>
         )}
         {error && (

@@ -1,7 +1,11 @@
 import axios from 'axios';
 
-// Backend API Base URL: use VITE_API_URL if set (e.g. http://localhost:5000/api for local backend), else production
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://saeedautobackend.vercel.app').replace(/\/$/, '') + '/api';
+// Backend API: VITE_API_URL overrides. In dev (npm run dev) default to local backend so app works without Vercel.
+const isDev = import.meta.env.DEV || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
+const base = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
+  : (isDev ? 'http://localhost:5000' : 'https://saeedautobackend.vercel.app');
+const API_BASE_URL = base + '/api';
 
 export const axiosApi = axios.create({
   baseURL: API_BASE_URL,
