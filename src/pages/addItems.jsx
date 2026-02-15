@@ -16,7 +16,9 @@ const AddItems = () => {
   const [formData, setFormData] = useState({
     productName: '',
     category: 'General',
-    subcategory: ''
+    subcategory: '',
+    price: '',
+    quantity: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -60,6 +62,16 @@ const AddItems = () => {
       showNotification('error', 'Product name is required');
       return;
     }
+    const priceVal = parseFloat(formData.price);
+    if (isNaN(priceVal) || priceVal < 0) {
+      showNotification('error', 'Enter a valid price (0 or more)');
+      return;
+    }
+    const qtyVal = parseInt(formData.quantity, 10);
+    if (isNaN(qtyVal) || qtyVal < 0) {
+      showNotification('error', 'Enter a valid quantity (0 or more)');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -67,8 +79,8 @@ const AddItems = () => {
         name: productName,
         category: formData.category || 'General',
         subcategory: (formData.subcategory || '').trim(),
-        price: 0,
-        quantity: 0,
+        price: priceVal,
+        quantity: qtyVal,
         isActive: true
       };
 
@@ -77,7 +89,9 @@ const AddItems = () => {
       setFormData({
         productName: '',
         category: 'General',
-        subcategory: ''
+        subcategory: '',
+        price: '',
+        quantity: ''
       });
     } catch (error) {
       const errorMessage = error.userMessage
@@ -117,7 +131,7 @@ const AddItems = () => {
           Add New Product
         </Typography>
         <Typography variant="subtitle1" align="center" color="text.secondary" sx={{ mb: 3 }}>
-          Product name, category, and subcategory.
+          Product name, category, subcategory, price and quantity.
         </Typography>
 
         <form onSubmit={handleSubmit}>
@@ -159,6 +173,36 @@ const AddItems = () => {
                 value={formData.subcategory}
                 onChange={handleInputChange}
                 placeholder="e.g. Bike 70, Soft Form"
+                size={isMobile ? 'small' : 'medium'}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Price (Rs) *"
+                name="price"
+                type="number"
+                value={formData.price}
+                onChange={handleInputChange}
+                required
+                inputProps={{ min: 0, step: 0.01 }}
+                placeholder="0"
+                size={isMobile ? 'small' : 'medium'}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Quantity (Stock) *"
+                name="quantity"
+                type="number"
+                value={formData.quantity}
+                onChange={handleInputChange}
+                required
+                inputProps={{ min: 0 }}
+                placeholder="0"
                 size={isMobile ? 'small' : 'medium'}
               />
             </Grid>

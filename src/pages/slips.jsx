@@ -172,12 +172,12 @@ const Slips = () => {
 
       const slipData = {
         customerName: formData.customerName.trim() || 'Walk Customer',
-        paymentMethod: 'Cash',
+        paymentMethod: formData.paymentMethod || 'Cash',
         products: productsPayload,
         subtotal: totalAmount,
-        discount: 0,
+        discount: parseFloat(formData.discount) || 0,
         totalAmount,
-        partialPayment: 0
+        partialPayment: formData.paymentMethod === 'Udhar' ? (parseFloat(formData.partialPayment) || 0) : 0
       };
 
       const response = await axiosApi.slips.create(slipData);
@@ -232,7 +232,7 @@ const Slips = () => {
           Create Slip
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
-          Customer, products, quantity. Total is calculated automatically.
+          Customer name, product (name/category) select, quantity. Udhar pe balance + pay now dikhega.
         </Typography>
       </Box>
 
@@ -300,14 +300,14 @@ const Slips = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Pay Amount (Rs) - Customer pays now"
+                  label="Pay now (Rs) — kitne kar rahe ho"
                   name="partialPayment"
                   type="number"
                   value={formData.partialPayment}
                   onChange={handleInputChange}
                   inputProps={{ min: 0, step: 0.01, max: totalAmount }}
                   size={isMobile ? 'small' : 'medium'}
-                  helperText={`Max: Rs ${totalAmount.toFixed(2)}`}
+                  helperText={`Is bill pe max: Rs ${totalAmount.toFixed(2)}`}
                 />
               </Grid>
             )}
@@ -315,16 +315,16 @@ const Slips = () => {
             {formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer' && (
               <Grid item xs={12}>
                 <Alert severity={customerBalance.previous > 0 ? 'warning' : 'info'} sx={{ borderRadius: 2 }}>
-                  <Typography variant="body2" fontWeight="bold" gutterBottom>Customer balance</Typography>
+                  <Typography variant="body2" fontWeight="bold" gutterBottom>Balance (Udhar)</Typography>
                   {customerBalance.previous > 0 && (
-                    <Typography variant="body2">Previous balance: Rs {customerBalance.previous.toFixed(2)}</Typography>
+                    <Typography variant="body2">Pehle ka balance: Rs {customerBalance.previous.toFixed(2)}</Typography>
                   )}
                   <Typography variant="body2" sx={{ mt: 0.5 }}>
-                    Bill amount: Rs {totalAmount.toFixed(2)}
-                    {formData.partialPayment > 0 && ` — Pay now: Rs ${parseFloat(formData.partialPayment).toFixed(2)}`}
+                    Is bill: Rs {totalAmount.toFixed(2)}
+                    {formData.partialPayment > 0 && ` — Ab pay: Rs ${parseFloat(formData.partialPayment).toFixed(2)}`}
                   </Typography>
                   <Typography variant="body2" fontWeight="bold" sx={{ mt: 1 }} color="primary.main">
-                    Remaining balance: Rs {customerBalance.remaining.toFixed(2)}
+                    Total balance (pehle + is bill − ab pay): Rs {customerBalance.remaining.toFixed(2)}
                   </Typography>
                 </Alert>
               </Grid>
