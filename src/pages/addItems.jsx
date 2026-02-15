@@ -15,12 +15,8 @@ const AddItems = () => {
 
   const [formData, setFormData] = useState({
     productName: '',
-    companyName: '',
-    bikeName: '',
     category: 'General',
-    price: '',
-    quantity: '',
-    status: true // Active
+    subcategory: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -46,10 +42,7 @@ const AddItems = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'status' ? value === 'true' : value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const showNotification = (severity, message) => {
@@ -62,20 +55,9 @@ const AddItems = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const productName = (formData.productName || '').trim();
     if (!productName) {
       showNotification('error', 'Product name is required');
-      return;
-    }
-    const priceValue = parseFloat(formData.price);
-    if (isNaN(priceValue) || priceValue < 0) {
-      showNotification('error', 'Enter a valid price (0 or more)');
-      return;
-    }
-    const quantityValue = parseInt(formData.quantity, 10);
-    if (isNaN(quantityValue) || quantityValue < 0) {
-      showNotification('error', 'Enter a valid stock quantity (0 or more)');
       return;
     }
 
@@ -84,22 +66,18 @@ const AddItems = () => {
       const itemData = {
         name: productName,
         category: formData.category || 'General',
-        price: priceValue,
-        basePrice: priceValue,
-        quantity: quantityValue,
-        isActive: formData.status
+        subcategory: (formData.subcategory || '').trim(),
+        price: 0,
+        quantity: 0,
+        isActive: true
       };
 
       await axiosApi.items.create(itemData);
       showNotification('success', 'Product added successfully!');
       setFormData({
         productName: '',
-        companyName: '',
-        bikeName: '',
         category: 'General',
-        price: '',
-        quantity: '',
-        status: true
+        subcategory: ''
       });
     } catch (error) {
       const errorMessage = error.userMessage
@@ -139,7 +117,7 @@ const AddItems = () => {
           Add New Product
         </Typography>
         <Typography variant="subtitle1" align="center" color="text.secondary" sx={{ mb: 3 }}>
-          Enter product details below. Fast and simple.
+          Product name, category, and subcategory.
         </Typography>
 
         <form onSubmit={handleSubmit}>
@@ -153,30 +131,6 @@ const AddItems = () => {
                 onChange={handleInputChange}
                 required
                 placeholder="e.g. Aster Cover, Oil Seal"
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Company Name"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleInputChange}
-                placeholder="e.g. DY, AH, BELTA"
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Bike Name"
-                name="bikeName"
-                value={formData.bikeName}
-                onChange={handleInputChange}
-                placeholder="e.g. 70, CD, 125, Yamaha"
                 size={isMobile ? 'small' : 'medium'}
               />
             </Grid>
@@ -200,46 +154,13 @@ const AddItems = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Price (Rs) *"
-                name="price"
-                type="number"
-                value={formData.price}
+                label="Sub Category"
+                name="subcategory"
+                value={formData.subcategory}
                 onChange={handleInputChange}
-                required
-                inputProps={{ min: 0, step: 0.01 }}
-                placeholder="0"
+                placeholder="e.g. Bike 70, Soft Form"
                 size={isMobile ? 'small' : 'medium'}
               />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Stock Quantity *"
-                name="quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={handleInputChange}
-                required
-                inputProps={{ min: 0 }}
-                placeholder="0"
-                size={isMobile ? 'small' : 'medium'}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  name="status"
-                  value={formData.status ? 'true' : 'false'}
-                  onChange={handleInputChange}
-                  label="Status"
-                >
-                  <MenuItem value="true">Active</MenuItem>
-                  <MenuItem value="false">Inactive</MenuItem>
-                </Select>
-              </FormControl>
             </Grid>
 
             <Grid item xs={12}>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Grid, Paper, Typography, TextField, Button, FormControl, InputLabel, Select, MenuItem,
-  Snackbar, Alert, Card, CardContent, IconButton, CircularProgress, useMediaQuery, useTheme
+  Snackbar, Alert, Card, CardContent, IconButton, CircularProgress, useMediaQuery, useTheme,
+  Autocomplete
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -350,21 +351,18 @@ const Slips = () => {
                     <CardContent>
                       <Grid container spacing={2} alignItems="center">
                         <Grid item xs={12} sm={5}>
-                          <FormControl fullWidth size="small" required>
-                            <InputLabel>Product *</InputLabel>
-                            <Select
-                              value={item.productId}
-                              onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
-                              label="Product *"
-                            >
-                              <MenuItem value="">Select product</MenuItem>
-                              {products.map(p => (
-                                <MenuItem key={p._id} value={p._id}>
-                                  {p.name || 'Unnamed'} — Rs {(p.price || 0).toLocaleString()} (Stock: {p.quantity ?? 0})
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
+                          <Autocomplete
+                            size="small"
+                            value={product || null}
+                            onChange={(e, newVal) => handleItemChange(index, 'productId', newVal ? newVal._id : '')}
+                            options={products}
+                            getOptionLabel={(p) => `${p.name || 'Unnamed'} — Rs ${(p.price || 0).toLocaleString()} (Stock: ${p.quantity ?? 0})`}
+                            groupBy={(p) => p.category || 'General'}
+                            renderInput={(params) => (
+                              <TextField {...params} label="Search & select product *" required={!item.productId} />
+                            )}
+                            isOptionEqualToValue={(opt, val) => opt._id === (val && val._id)}
+                          />
                         </Grid>
                         <Grid item xs={6} sm={2}>
                           <TextField
