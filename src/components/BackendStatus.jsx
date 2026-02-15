@@ -63,7 +63,9 @@ const BackendStatus = () => {
         </Typography>
         {status === 'offline' && (
           <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-            In local dev the app uses <strong>http://localhost:5000</strong>. Run the backend: in the <code>express js</code> folder run <code>node index.js</code> (and set <code>MONGO_URI</code> in a <code>.env</code> there). To use the Vercel backend instead, set <strong>VITE_API_URL=https://saeedautobackend.vercel.app</strong> in this project&apos;s <code>.env</code> and restart.
+            <strong>Vercel backend:</strong> In backend project (e.g. saeedautobackend) go to Settings → Environment Variables → add <code>MONGO_URI</code> (MongoDB connection string), then Redeploy. See <code>express js/VERCEL_ENV.md</code> for details.
+            <br />
+            <strong>Local dev:</strong> Run <code>node index.js</code> in the <code>express js</code> folder (with <code>MONGO_URI</code> in its <code>.env</code>). The app uses <code>http://localhost:5000</code> by default when running locally.
           </Typography>
         )}
         {error && (
