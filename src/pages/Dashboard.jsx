@@ -527,7 +527,7 @@ function Dashboard() {
               Sales Trends ({timeRange})
             </Typography>
             <Box sx={{ width: '100%', height: 280, minHeight: 250, mt: 2 }}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+              <ResponsiveContainer width="100%" height={280} minHeight={250}>
                 <LineChart data={salesTrends.map(item => ({
                   date: item._id.date,
                   sales: item.totalSales,
@@ -553,7 +553,7 @@ function Dashboard() {
               Orders by Status
             </Typography>
             <Box sx={{ width: '100%', height: 280, minHeight: 250, mt: 2 }}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+              <ResponsiveContainer width="100%" height={280} minHeight={250}>
                 <PieChart>
                   <Pie
                     data={ordersByStatus}
@@ -586,7 +586,7 @@ function Dashboard() {
               Top Selling Products ({timeRange})
             </Typography>
             <Box sx={{ width: '100%', height: 280, minHeight: 250, mt: 2 }}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+              <ResponsiveContainer width="100%" height={280} minHeight={250}>
                 <BarChart data={topProducts.map(item => ({
                   name: item._id?.length > 20 ? item._id.substring(0, 20) + '...' : item._id,
                   quantity: item.totalQuantity,
@@ -613,7 +613,7 @@ function Dashboard() {
               Inventory Stock Levels
             </Typography>
             <Box sx={{ width: '100%', height: 280, minHeight: 250, mt: 2 }}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+              <ResponsiveContainer width="100%" height={280} minHeight={250}>
                 <BarChart
                   data={[
                     { name: 'Out of Stock', value: inventoryLevels?.stockLevels?.outOfStock?.length || 0 },
