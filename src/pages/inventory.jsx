@@ -622,15 +622,15 @@ export default function Inventory() {
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
+                      <IconButton
+                        size="small"
                           color="error"
                           onClick={() => setItemToDelete(item)}
                           disabled={!!deletingId}
-                        >
+                      >
                           <Delete fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      </IconButton>
+                    </Tooltip>
                     </Stack>
                   </TableCell>
                 </TableRow>

@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Typography, Fade, Button } from '@mui/material';
 import { keyframes } from '@emotion/react';
 import saeedLogo from '../assets/ChatGPT Image Aug 6, 2025, 02_36_45 AM.png';
 import { useNavigate } from 'react-router-dom';
+
+const PARTICLE_COUNT = 100;
+const PARTICLE_SIZE = 1.5;
+const CURSOR_FOLLOW = 0.1;
+const LOGO_FOLLOW = 0.02;
 
 const fadeIn = keyframes`
   from {
@@ -47,25 +52,19 @@ const shimmer = keyframes`
   }
 `;
 
-const pulse = keyframes`
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.9;
-  }
-`;
 
 function StartupAnimation({ children, isLoading = false }) {
   const navigate = useNavigate();
   const [showContent, setShowContent] = useState(false);
   const [skipAnimation, setSkipAnimation] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(10);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [logoTransform, setLogoTransform] = useState({ x: 0, y: 0 });
+  const canvasRef = useRef(null);
+  const particlesRef = useRef([]);
+  const animationFrameRef = useRef(null);
 
   useEffect(() => {
-    // Check if animation was skipped before
     const wasSkipped = sessionStorage.getItem('animationSkipped');
     
     if (wasSkipped || skipAnimation) {
@@ -73,7 +72,6 @@ function StartupAnimation({ children, isLoading = false }) {
       return;
     }
 
-    // Countdown timer
     const countdown = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
@@ -85,7 +83,6 @@ function StartupAnimation({ children, isLoading = false }) {
       });
     }, 1000);
 
-    // Auto-hide after 10 seconds
     const timer = setTimeout(() => {
       setShowContent(true);
       clearInterval(countdown);
@@ -96,6 +93,99 @@ function StartupAnimation({ children, isLoading = false }) {
       clearInterval(countdown);
     };
   }, [skipAnimation]);
+
+  // Initialize particles and animation
+  useEffect(() => {
+    if (skipAnimation || showContent) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    particlesRef.current = Array.from({ length: PARTICLE_COUNT }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      size: PARTICLE_SIZE + Math.random() * 0.5,
+    }));
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      particlesRef.current.forEach((p) => {
+        const dx = mousePos.x - p.x;
+        const dy = mousePos.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 200) {
+          const force = (200 - dist) / 200;
+          p.vx += dx * CURSOR_FOLLOW * force;
+          p.vy += dy * CURSOR_FOLLOW * force;
+        }
+        
+        p.vx *= 0.95;
+        p.vy *= 0.95;
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -0.8;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -0.8;
+        p.x = Math.max(0, Math.min(canvas.width, p.x));
+        p.y = Math.max(0, Math.min(canvas.height, p.y));
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + Math.random() * 0.3})`;
+        ctx.fill();
+      });
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    animate();
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [mousePos, skipAnimation, showContent]);
+
+  // Handle mouse move for particles and logo
+  const handleMouseMove = useCallback((e) => {
+    const x = e.clientX;
+    const y = e.clientY;
+    setMousePos({ x, y });
+    
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const dx = (x - centerX) * LOGO_FOLLOW;
+    const dy = (y - centerY) * LOGO_FOLLOW;
+    setLogoTransform({ x: dx, y: dy });
+  }, []);
+
+  // Handle window resize and mouse events
+  useEffect(() => {
+    const handleResize = () => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [handleMouseMove]);
 
   const handleContinue = () => {
     setSkipAnimation(true);
@@ -144,27 +234,42 @@ function StartupAnimation({ children, isLoading = false }) {
           right: 0,
           bottom: 0,
           background: 'radial-gradient(circle at 50% 50%, rgba(30, 64, 175, 0.3) 0%, transparent 70%)',
-          animation: `${pulse} 3s ease-in-out infinite`
         }
       }}
       role="status"
       aria-live="polite"
       aria-label="Loading application"
     >
+      {/* Particles Canvas */}
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 1
+        }}
+      />
+
       <Fade in={true} timeout={500}>
         <Box sx={{ 
           textAlign: 'center',
           position: 'relative',
-          zIndex: 1
+          zIndex: 2
         }}>
-          {/* Logo with animation */}
+          {/* Logo with cursor-following motion only (no automatic animation) */}
           <Box
             sx={{
               mb: 4,
               animation: `${scaleIn} 1.2s ease-out`,
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
+              transform: `translate(${logoTransform.x}px, ${logoTransform.y}px)`,
+              transition: 'transform 0.1s ease-out'
             }}
           >
             <Box
@@ -178,10 +283,8 @@ function StartupAnimation({ children, isLoading = false }) {
                 justifyContent: 'center',
                 boxShadow: '0 25px 70px rgba(0, 0, 0, 0.4), 0 0 40px rgba(220, 38, 38, 0.3)',
                 padding: { xs: 2.5, sm: 3, md: 3.5 },
-                transition: 'transform 0.3s ease',
-                animation: `${pulse} 2s ease-in-out infinite`,
+                transition: 'box-shadow 0.3s ease',
                 '&:hover': {
-                  transform: 'scale(1.05)',
                   boxShadow: '0 30px 80px rgba(0, 0, 0, 0.5), 0 0 50px rgba(30, 64, 175, 0.4)'
                 }
               }}

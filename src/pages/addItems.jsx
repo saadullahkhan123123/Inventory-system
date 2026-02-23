@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Paper, Typography, TextField, Button, Grid,
+  Box, Paper, Typography, TextField, Button, Grid, 
   Snackbar, Alert, CircularProgress, FormControl, InputLabel, Select, MenuItem,
   useMediaQuery, useTheme
 } from '@mui/material';
@@ -12,7 +12,7 @@ const DEFAULT_CATEGORIES = ['General', 'Cover', 'Form', 'Plate', 'Accessories', 
 const AddItems = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
+  
   const [formData, setFormData] = useState({
     productName: '',
     category: 'General',
@@ -60,18 +60,18 @@ const AddItems = () => {
     const productName = (formData.productName || '').trim();
     if (!productName) {
       showNotification('error', 'Product name is required');
-      return;
-    }
+        return;
+      }
     const priceVal = parseFloat(formData.price);
     if (isNaN(priceVal) || priceVal < 0) {
       showNotification('error', 'Enter a valid price (0 or more)');
-      return;
-    }
+            return;
+          }
     const qtyVal = parseInt(formData.quantity, 10);
     if (isNaN(qtyVal) || qtyVal < 0) {
       showNotification('error', 'Enter a valid quantity (0 or more)');
-      return;
-    }
+        return;
+      }
 
     setLoading(true);
     try {
@@ -86,13 +86,13 @@ const AddItems = () => {
 
       await axiosApi.items.create(itemData);
       showNotification('success', 'Product added successfully!');
-      setFormData({
+        setFormData({
         productName: '',
         category: 'General',
         subcategory: '',
-        price: '',
+          price: '',
         quantity: ''
-      });
+        });
     } catch (error) {
       const errorMessage = error.userMessage
         || error.response?.data?.error
@@ -105,16 +105,16 @@ const AddItems = () => {
   };
 
   return (
-    <Box sx={{
-      marginTop: { xs: '56px', sm: '64px' },
-      padding: { xs: 1, sm: 2, md: 4 },
+    <Box sx={{ 
+      marginTop: { xs: '56px', sm: '64px' }, 
+      padding: { xs: 1, sm: 2, md: 4 }, 
       maxWidth: '800px',
       mx: 'auto',
       minHeight: '100vh',
       background: 'linear-gradient(to bottom, #f5f7fa 0%, #ffffff 100%)',
       pb: { xs: 2, sm: 3 }
     }}>
-      <Paper elevation={0} sx={{
+      <Paper elevation={0} sx={{ 
         p: { xs: 1.5, sm: 2.5, md: 4 },
         borderRadius: { xs: 2, sm: 3 },
         boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
@@ -149,21 +149,21 @@ const AddItems = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6}>
               <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
                 <InputLabel>Category</InputLabel>
-                <Select
+                    <Select
                   name="category"
                   value={formData.category}
-                  onChange={handleInputChange}
+                      onChange={handleInputChange}
                   label="Category"
                 >
                   {DEFAULT_CATEGORIES.map(cat => (
                     <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                        ))}
+                      </Select>
+                    </FormControl>
+                </Grid>
 
             <Grid item xs={12} sm={6}>
               <TextField
@@ -173,8 +173,8 @@ const AddItems = () => {
                 value={formData.subcategory}
                 onChange={handleInputChange}
                 placeholder="e.g. Bike 70, Soft Form"
-                size={isMobile ? 'small' : 'medium'}
-              />
+                  size={isMobile ? 'small' : 'medium'}
+                />
             </Grid>
 
             <Grid item xs={12} sm={6}>
@@ -188,8 +188,8 @@ const AddItems = () => {
                 required
                 inputProps={{ min: 0, step: 0.01 }}
                 placeholder="0"
-                size={isMobile ? 'small' : 'medium'}
-              />
+                  size={isMobile ? 'small' : 'medium'}
+                />
             </Grid>
 
             <Grid item xs={12} sm={6}>
@@ -215,12 +215,12 @@ const AddItems = () => {
                   size="large"
                   startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
                   disabled={loading || serverStatus === 'offline'}
-                  sx={{
+                    sx={{ 
                     minWidth: { xs: '100%', sm: 220 },
                     py: 1.25,
-                    background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                      background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                     '&:hover': { background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)' }
-                  }}
+                    }}
                 >
                   {loading ? 'Adding…' : serverStatus === 'offline' ? 'Server Offline' : 'Add Product'}
                 </Button>

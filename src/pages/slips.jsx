@@ -22,7 +22,7 @@ const Slips = () => {
     paymentMethod: 'Cash',
     discount: 0,
     partialPayment: 0,
-    items: [{ productId: '', quantity: 1 }]
+    items: [{ category: '', subcategory: '', productId: '', quantity: 1 }]
   });
 
   const [products, setProducts] = useState([]);
@@ -47,6 +47,26 @@ const Slips = () => {
   }, [showNotification]);
 
   const getProduct = (productId) => products.find(p => p._id === productId);
+
+  // Get unique categories from products
+  const categories = React.useMemo(() => {
+    const cats = [...new Set(products.map(p => p.category || 'General').filter(Boolean))];
+    return cats.sort();
+  }, [products]);
+
+  // Get subcategories based on selected category
+  const getSubcategoriesByCategory = (category) => {
+    if (!category) return [];
+    const subs = [
+      ...new Set(
+        products
+          .filter(p => (p.category || 'General') === category)
+          .map(p => p.subcategory || '')
+          .filter(Boolean)
+      )
+    ];
+    return subs.sort();
+  };
 
   // Fetch customer balance when Udhar and customer name
   useEffect(() => {
@@ -86,8 +106,27 @@ const Slips = () => {
 
   const handleItemChange = (index, field, value) => {
     const updated = [...formData.items];
-    if (field === 'productId') {
-      updated[index] = { ...updated[index], productId: value, quantity: updated[index].quantity || 1 };
+    if (field === 'category') {
+      // When category changes, reset subcategory and product
+      updated[index] = {
+        ...updated[index],
+        category: value,
+        subcategory: '',
+        productId: '',
+      };
+    } else if (field === 'subcategory') {
+      // When subcategory changes, reset product
+      updated[index] = {
+        ...updated[index],
+        subcategory: value,
+        productId: '',
+      };
+    } else if (field === 'productId') {
+      updated[index] = {
+        ...updated[index],
+        productId: value,
+        quantity: updated[index].quantity || 1
+      };
     } else {
       updated[index] = { ...updated[index], [field]: value };
     }
@@ -95,7 +134,10 @@ const Slips = () => {
   };
 
   const addRow = () => {
-    setFormData(prev => ({ ...prev, items: [...prev.items, { productId: '', quantity: 1 }] }));
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, { category: '', subcategory: '', productId: '', quantity: 1 }]
+    }));
   };
 
   const removeRow = (index) => {
@@ -120,6 +162,10 @@ const Slips = () => {
     }
     for (let i = 0; i < formData.items.length; i++) {
       const item = formData.items[i];
+      if (!item.category) {
+        showNotification('error', 'Select a category for every row.');
+        return false;
+      }
       if (!item.productId) {
         showNotification('error', 'Select a product for every row.');
         return false;
@@ -151,7 +197,7 @@ const Slips = () => {
           const qty = Math.max(1, parseInt(item.quantity, 10) || 0);
           const unitPrice = product ? (product.price || 0) : 0;
           const totalPrice = qty * unitPrice;
-          return {
+        return {
             productName: product ? (product.name || '') : '',
             quantity: qty,
             unitPrice,
@@ -167,8 +213,8 @@ const Slips = () => {
             category: (product && product.category) || '',
             subcategory: (product && product.subcategory) || '',
             company: (product && product.company) || ''
-          };
-        });
+        };
+      });
 
       const slipData = {
         customerName: formData.customerName.trim() || 'Walk Customer',
@@ -192,7 +238,7 @@ const Slips = () => {
         paymentMethod: 'Cash',
         discount: 0,
         partialPayment: 0,
-        items: [{ productId: '', quantity: 1 }]
+        items: [{ category: '', subcategory: '', productId: '', quantity: 1 }]
       });
     } catch (err) {
       console.error('Slip creation error:', err);
@@ -212,17 +258,17 @@ const Slips = () => {
   }
 
   return (
-    <Box sx={{
+    <Box sx={{ 
       maxWidth: 900,
-      mx: 'auto',
-      mt: { xs: 0.5, sm: 1, md: 2 },
+      mx: 'auto', 
+      mt: { xs: 0.5, sm: 1, md: 2 }, 
       p: { xs: 1, sm: 1.5, md: 3 },
       minHeight: '100vh',
       background: 'linear-gradient(to bottom, #f5f7fa 0%, #ffffff 100%)',
       pb: { xs: 2, sm: 3 }
     }}>
       <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-        <Typography variant="h4" fontWeight="bold" sx={{
+        <Typography variant="h4" fontWeight="bold" sx={{ 
           background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
@@ -236,7 +282,7 @@ const Slips = () => {
         </Typography>
       </Box>
 
-      <Paper sx={{
+      <Paper sx={{ 
         p: { xs: 1.5, sm: 2.5, md: 3 },
         borderRadius: { xs: 2, sm: 3 },
         boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
@@ -270,17 +316,17 @@ const Slips = () => {
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
                 <InputLabel>Payment Method</InputLabel>
-                <Select
-                  name="paymentMethod"
+                  <Select
+                    name="paymentMethod"
                   value={formData.paymentMethod}
-                  onChange={handleInputChange}
+                    onChange={handleInputChange}
                   label="Payment Method"
-                >
-                  <MenuItem value="Cash">Cash</MenuItem>
-                  <MenuItem value="Udhar">Udhar (Credit)</MenuItem>
-                  <MenuItem value="Account">Account</MenuItem>
-                </Select>
-              </FormControl>
+                  >
+                    <MenuItem value="Cash">Cash</MenuItem>
+                    <MenuItem value="Udhar">Udhar (Credit)</MenuItem>
+                    <MenuItem value="Account">Account</MenuItem>
+                  </Select>
+                </FormControl>
             </Grid>
 
             <Grid item xs={12} sm={6}>
@@ -297,19 +343,19 @@ const Slips = () => {
             </Grid>
 
             {formData.paymentMethod === 'Udhar' && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
                   label="Pay now (Rs) — kitne kar rahe ho"
-                  name="partialPayment"
+                    name="partialPayment"
                   type="number"
                   value={formData.partialPayment}
-                  onChange={handleInputChange}
+                    onChange={handleInputChange}
                   inputProps={{ min: 0, step: 0.01, max: totalAmount }}
                   size={isMobile ? 'small' : 'medium'}
                   helperText={`Is bill pe max: Rs ${totalAmount.toFixed(2)}`}
-                />
-              </Grid>
+                  />
+                </Grid>
             )}
 
             {formData.paymentMethod === 'Udhar' && formData.customerName.trim() && formData.customerName.trim() !== 'Walk Customer' && (
@@ -345,25 +391,68 @@ const Slips = () => {
               const qty = Math.max(0, parseInt(item.quantity, 10) || 0);
               const lineTotalVal = qty * unitPrice;
 
+              const subcategories = item.category ? getSubcategoriesByCategory(item.category) : [];
+              const filteredProducts = products.filter(p => {
+                const catMatch = (p.category || 'General') === item.category;
+                const subMatch = item.subcategory ? (p.subcategory || '') === item.subcategory : true;
+                return catMatch && subMatch;
+              });
+
               return (
                 <Grid item xs={12} key={index}>
                   <Card variant="outlined" sx={{ borderRadius: 2 }}>
                     <CardContent>
                       <Grid container spacing={2} alignItems="center">
-                        <Grid item xs={12} sm={5}>
+                        <Grid item xs={12} sm={3}>
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Category *</InputLabel>
+                            <Select
+                              label="Category *"
+                              value={item.category || ''}
+                              onChange={(e) => handleItemChange(index, 'category', e.target.value)}
+                            >
+                              {categories.map(cat => (
+                                <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        <Grid item xs={12} sm={3}>
+                          <FormControl fullWidth size="small" disabled={!item.category}>
+                            <InputLabel>Subcategory</InputLabel>
+                            <Select
+                              label="Subcategory"
+                              value={item.subcategory || ''}
+                              onChange={(e) => handleItemChange(index, 'subcategory', e.target.value)}
+                            >
+                              <MenuItem value="">All</MenuItem>
+                              {subcategories.map(sub => (
+                                <MenuItem key={sub} value={sub}>{sub}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        <Grid item xs={12} sm={4}>
                           <Autocomplete
                             size="small"
                             value={product || null}
                             onChange={(e, newVal) => handleItemChange(index, 'productId', newVal ? newVal._id : '')}
-                            options={products}
+                            options={filteredProducts}
                             getOptionLabel={(p) => `${p.name || 'Unnamed'} — Rs ${(p.price || 0).toLocaleString()} (Stock: ${p.quantity ?? 0})`}
-                            groupBy={(p) => p.category || 'General'}
                             renderInput={(params) => (
-                              <TextField {...params} label="Search & select product *" required={!item.productId} />
+                              <TextField
+                                {...params}
+                                label="Product *"
+                                required={!item.productId}
+                              />
                             )}
                             isOptionEqualToValue={(opt, val) => opt._id === (val && val._id)}
+                            disabled={!item.category}
                           />
                         </Grid>
+
                         <Grid item xs={6} sm={2}>
                           <TextField
                             fullWidth
@@ -375,11 +464,16 @@ const Slips = () => {
                             size="small"
                           />
                         </Grid>
+
                         <Grid item xs={6} sm={2}>
-                          <Typography variant="body2" color="text.secondary">Unit: Rs {unitPrice.toLocaleString()}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Unit: Rs {unitPrice.toLocaleString()}
+                          </Typography>
                         </Grid>
                         <Grid item xs={10} sm={2}>
-                          <Typography variant="body2" fontWeight="bold">Total: Rs {lineTotalVal.toLocaleString()}</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            Total: Rs {lineTotalVal.toLocaleString()}
+                          </Typography>
                         </Grid>
                         <Grid item xs={2} sm={1}>
                           <IconButton
@@ -399,22 +493,22 @@ const Slips = () => {
             })}
 
             <Grid item xs={12}>
-              <Card sx={{
+              <Card sx={{ 
                 p: 2,
                 background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                 color: 'white',
                 borderRadius: 2
               }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>Subtotal</Typography>
                   <Typography variant="body2">Rs {subtotal.toLocaleString()}</Typography>
-                </Box>
+                  </Box>
                 {discountAmount > 0 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>Discount</Typography>
                     <Typography variant="body2">- Rs {discountAmount.toLocaleString()}</Typography>
-                  </Box>
-                )}
+                    </Box>
+                  )}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.3)' }}>
                   <Typography variant="h6">Total Amount</Typography>
                   <Typography variant="h5" fontWeight="bold">Rs {totalAmount.toLocaleString()}</Typography>
