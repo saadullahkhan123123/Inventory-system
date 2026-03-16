@@ -27,10 +27,11 @@ import {
   
         {/* Customer Info */}
         <View>
-          <Text>Slip #: {slip.slipNumber}</Text>
-          <Text>Date: {new Date(slip.date).toLocaleString()}</Text>
-          <Text>Customer: {slip.customerName}</Text>
-          <Text>Phone: {slip.customerPhone}</Text>
+          <Text>Slip #: {slip.slipNumber || slip._id}</Text>
+          <Text>Date: {new Date(slip.date || slip.createdAt).toLocaleString()}</Text>
+          <Text>Customer: {slip.customerName || 'Walk Customer'}</Text>
+          {slip.customerPhone && <Text>Phone: {slip.customerPhone}</Text>}
+          <Text>Payment Method: {slip.paymentMethod || 'Cash'}</Text>
         </View>
   
         {/* Products Table */}
@@ -53,10 +54,28 @@ import {
   
         {/* Totals */}
         <View style={styles.totals}>
-          <Text>Subtotal: Rs {slip.subtotal}</Text>
-          <Text>Tax: Rs {slip.tax}</Text>
-          <Text>Discount: Rs {slip.discount}</Text>
-          <Text style={{ fontSize: 14, fontWeight: 'bold' }}>Total: Rs {slip.totalAmount}</Text>
+          <Text>Subtotal: Rs {slip.subtotal?.toLocaleString() || 0}</Text>
+          {slip.discount > 0 && (
+            <Text>Discount: -Rs {slip.discount?.toLocaleString() || 0}</Text>
+          )}
+          <Text style={{ fontSize: 14, fontWeight: 'bold' }}>Total Amount: Rs {slip.totalAmount?.toLocaleString() || 0}</Text>
+          
+          {/* Udhar Payment Details */}
+          {slip.paymentMethod === 'Udhar' && (
+            <>
+              {slip.previousBalance > 0 && (
+                <Text>Previous Balance: Rs {slip.previousBalance?.toLocaleString() || 0}</Text>
+              )}
+              {slip.partialPayment > 0 && (
+                <Text style={{ color: '#4caf50', fontSize: 13, fontWeight: 'bold' }}>
+                  Pay Now: Rs {slip.partialPayment?.toLocaleString() || 0}
+                </Text>
+              )}
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#ff9800' }}>
+                Remaining Balance: Rs {(slip.remainingBalance || ((slip.currentBalance || slip.totalAmount || 0) - (slip.partialPayment || 0))).toLocaleString()}
+              </Text>
+            </>
+          )}
         </View>
   
         {/* Footer */}

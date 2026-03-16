@@ -327,7 +327,7 @@ function SlipPage() {
             <div><strong>Date:</strong> ${new Date(slip.date || slip.createdAt).toLocaleString()}</div>
             <div><strong>Customer:</strong> ${slip.customerName || 'Walk Customer'}</div>
             ${slip.customerPhone ? `<div><strong>Phone:</strong> ${slip.customerPhone}</div>` : ''}
-            ${(slip.paymentMethod === 'Cash' || slip.paymentMethod === 'Account') ? `<div><strong>Payment Method:</strong> ${slip.paymentMethod}</div>` : ''}
+            <div><strong>Payment Method:</strong> ${slip.paymentMethod || 'Cash'}</div>
           </div>
           
           <table>
@@ -380,8 +380,8 @@ function SlipPage() {
             <div class="total-amount"><strong>Payable Amount:</strong> Rs ${slip.totalAmount?.toLocaleString()}</div>
             ${slip.paymentMethod === 'Udhar' ? `
               ${slip.previousBalance > 0 ? `<div><strong>Previous Balance:</strong> Rs ${slip.previousBalance?.toLocaleString()}</div>` : ''}
-              ${slip.partialPayment > 0 ? `<div style="color: #4caf50;"><strong>Customer Paid:</strong> Rs ${slip.partialPayment?.toLocaleString()}</div>` : ''}
-              <div style="font-size: 18px; font-weight: bold; color: #ff9800;"><strong>Remaining Balance:</strong> Rs ${((slip.currentBalance || slip.totalAmount || 0) - (slip.partialPayment || 0)).toLocaleString()}</div>
+              ${slip.partialPayment > 0 ? `<div style="color: #4caf50; font-size: 16px; font-weight: bold;"><strong>Pay Now:</strong> Rs ${slip.partialPayment?.toLocaleString()}</div>` : ''}
+              <div style="font-size: 18px; font-weight: bold; color: #ff9800;"><strong>Remaining Balance:</strong> Rs ${(slip.remainingBalance || ((slip.currentBalance || slip.totalAmount || 0) - (slip.partialPayment || 0))).toLocaleString()}</div>
             ` : ''}
           </div>
           
@@ -547,11 +547,9 @@ function SlipPage() {
               <strong>Phone:</strong> {slip.customerPhone}
             </Typography>
           )}
-          {(slip.paymentMethod === 'Cash' || slip.paymentMethod === 'Account') && (
-            <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
-              <strong>Payment Method:</strong> {slip.paymentMethod}
-            </Typography>
-          )}
+          <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
+            <strong>Payment Method:</strong> {slip.paymentMethod || 'Cash'}
+          </Typography>
           {slip.status && (
             <Typography sx={{ fontSize: 'inherit', fontFamily: 'inherit' }}>
               <strong>Status:</strong> {slip.status}
@@ -740,9 +738,10 @@ function SlipPage() {
                   mb: 1,
                   fontSize: { xs: '0.875rem', sm: '1rem' },
                   fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                  color: 'success.main'
+                  color: 'success.main',
+                  fontWeight: 'bold'
                 }}>
-                  <strong>Customer Paid:</strong> Rs {(slip.partialPayment || 0).toLocaleString()}
+                  <strong>Pay Now:</strong> Rs {(slip.partialPayment || 0).toLocaleString()}
                 </Typography>
               )}
               <Typography sx={{ 
@@ -752,7 +751,7 @@ function SlipPage() {
                 color: 'warning.main',
                 fontWeight: 'bold'
               }}>
-                <strong>Remaining Balance:</strong> Rs {((slip.currentBalance || slip.totalAmount || 0) - (slip.partialPayment || 0)).toLocaleString()}
+                <strong>Remaining Balance:</strong> Rs {(slip.remainingBalance || ((slip.currentBalance || slip.totalAmount || 0) - (slip.partialPayment || 0))).toLocaleString()}
               </Typography>
             </>
           )}

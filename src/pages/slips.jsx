@@ -220,9 +220,9 @@ const Slips = () => {
         customerName: formData.customerName.trim() || 'Walk Customer',
         paymentMethod: formData.paymentMethod || 'Cash',
         products: productsPayload,
-        subtotal: totalAmount,
+        subtotal: subtotal, // Subtotal before discount
         discount: parseFloat(formData.discount) || 0,
-        totalAmount,
+        totalAmount, // Total after discount
         partialPayment: formData.paymentMethod === 'Udhar' ? (parseFloat(formData.partialPayment) || 0) : 0
       };
 
